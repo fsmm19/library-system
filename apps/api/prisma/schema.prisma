@@ -1,0 +1,70 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @db.VarChar(255)
+  role         Role
+  firstName    String    @db.VarChar(100)
+  middleName   String?   @db.VarChar(100)
+  lastName     String    @db.VarChar(100)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  partner   Member?
+  librarian Librarian?
+
+  @@index([email])
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Member {
+  userId       String            @id @db.Uuid
+  accountState AccountState
+  conditions   MemberCondition[] @default([])
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([accountState])
+  @@map("members")
+}
+
+model Librarian {
+  userId   String    @id @db.Uuid
+  isActive Boolean   @default(true)
+  hireDate DateTime  @db.Date
+  endDate  DateTime? @db.Date
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("librarians")
+}
+
+enum Role {
+  MEMBER
+  LIBRARIAN
+}
+
+enum AccountState {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum MemberCondition {
+  HAS_LATE_RETURN
+  HAS_FINE
+  LOST_COPY
+}
