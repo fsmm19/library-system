@@ -68,3 +68,49 @@ enum MemberCondition {
   HAS_FINE
   LOST_COPY
 }
+
+model Material {
+  id        String   @id @default(uuid()) @db.Uuid
+  title     String   @db.VarChar(500)
+  subtitle  String?  @db.VarChar(500)
+  type      String   @db.VarChar(50)
+  language  String   @db.VarChar(50)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  authors Author[]
+  book    Book?
+
+  @@index([title])
+  @@index([type])
+  @@index([createdAt])
+  @@map("materials")
+}
+
+model Author {
+  id          String    @id @default(uuid()) @db.Uuid
+  firstName   String    @db.VarChar(100)
+  middleName  String?   @db.VarChar(100)
+  lastName    String    @db.VarChar(100)
+  nationality String?   @db.VarChar(100)
+  birthDate   DateTime? @db.Date
+
+  materials Material[]
+
+  @@unique([firstName, middleName, lastName, nationality])
+  @@index([lastName, firstName])
+  @@map("authors")
+}
+
+model Book {
+  id            String  @id @default(uuid()) @db.Uuid
+  isbn13        String? @unique @db.VarChar(13)
+  edition       String? @db.VarChar(100)
+  numberOfPages Int?
+
+  materialId String   @unique @db.Uuid
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@index([isbn13])
+  @@map("books")
+}

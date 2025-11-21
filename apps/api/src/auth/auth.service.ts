@@ -52,6 +52,8 @@ export class AuthService {
         firstName: user.firstName,
         middleName: user.middleName,
         lastName: user.lastName,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
       },
     };
   }
@@ -85,6 +87,8 @@ export class AuthService {
         firstName: user.firstName,
         middleName: user.middleName,
         lastName: user.lastName,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
       },
       member,
     };
@@ -110,6 +114,8 @@ export class AuthService {
         firstName: user.firstName,
         middleName: user.middleName,
         lastName: user.lastName,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
       },
       librarian,
     };
