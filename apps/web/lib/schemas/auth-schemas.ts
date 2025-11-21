@@ -23,9 +23,9 @@ export const registerMemberSchema = z
   .object({
     firstName: z
       .string()
-      .min(1, 'El nombre es requerido')
-      .min(2, 'El nombre debe tener al menos 2 caracteres')
-      .max(50, 'El nombre es demasiado largo')
+      .min(1, 'El primer nombre es requerido')
+      .min(2, 'El primer nombre debe tener al menos 2 caracteres')
+      .max(50, 'El primer nombre es demasiado largo')
       .regex(
         /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
         'El nombre solo puede contener letras y espacios'

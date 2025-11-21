@@ -53,7 +53,9 @@ export default function LoginForm() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       const response = await login(data);
-      toast.success('Inicio de sesion exitoso');
+      toast.success('Inicio de sesión exitoso', {
+        description: `Bienvenido de vuelta, ${response.user.firstName}`,
+      });
 
       // Redirect based on user role
       if (response.user.role === 'LIBRARIAN') {
@@ -63,8 +65,10 @@ export default function LoginForm() {
       }
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Error al iniciar sesion';
-      toast.error(errorMessage);
+        error instanceof Error ? error.message : 'Error al iniciar sesión';
+      toast.error('Error en el inicio de sesión', {
+        description: errorMessage,
+      });
     }
   };
 

@@ -23,7 +23,7 @@ export class AuthService {
     const { email, password } = loginDto;
 
     const user = await this.usersService.findByEmail(email).catch(() => {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Usuario o contraseña incorrectos');
     });
 
     const isPasswordValid = await this.userFactory.comparePasswords(
@@ -32,7 +32,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Usuario o contraseña incorrectos');
     }
 
     const payload = {
