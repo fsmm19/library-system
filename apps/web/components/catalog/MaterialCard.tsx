@@ -37,6 +37,48 @@ export function MaterialCard({ material }: MaterialCardProps) {
     }
   };
 
+  const getAvailabilityBadge = () => {
+    if (
+      material.totalCopies === undefined ||
+      material.availableCopies === undefined
+    ) {
+      return null;
+    }
+
+    if (material.availableCopies === 0) {
+      return (
+        <Badge variant="destructive" className="text-xs">
+          No disponible
+        </Badge>
+      );
+    }
+
+    const percentage =
+      material.totalCopies > 0
+        ? (material.availableCopies / material.totalCopies) * 100
+        : 0;
+
+    if (percentage <= 25) {
+      return (
+        <Badge
+          variant="outline"
+          className="text-xs border-orange-500 text-orange-600"
+        >
+          Pocas copias
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge
+        variant="outline"
+        className="text-xs border-green-600 text-green-600"
+      >
+        Disponible
+      </Badge>
+    );
+  };
+
   return (
     <Link href={`/catalog/${material.id}`}>
       <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] h-full">
@@ -55,11 +97,12 @@ export function MaterialCard({ material }: MaterialCardProps) {
           )}
         </div>
         <CardContent className="p-4">
-          <div className="flex items-start gap-2 mb-2">
+          <div className="flex items-start gap-2 mb-2 flex-wrap">
             <Badge variant="outline" className="flex items-center gap-1">
               {getIconComponent()}
               <span className="text-xs">{getTypeLabel(material.type)}</span>
             </Badge>
+            {getAvailabilityBadge()}
           </div>
 
           <h3 className="font-semibold text-foreground line-clamp-2 mb-1 group-hover:text-primary transition-colors">
@@ -84,6 +127,28 @@ export function MaterialCard({ material }: MaterialCardProps) {
               </span>
             )}
           </div>
+
+          {/* Availability text */}
+          {material.totalCopies !== undefined &&
+            material.availableCopies !== undefined && (
+              <div className="mt-2 pt-2 border-t">
+                <p
+                  className={`text-xs font-medium ${
+                    material.availableCopies === 0
+                      ? 'text-red-600'
+                      : material.totalCopies > 0 &&
+                        (material.availableCopies / material.totalCopies) *
+                          100 <=
+                          25
+                      ? 'text-orange-600'
+                      : 'text-green-600'
+                  }`}
+                >
+                  {material.availableCopies} de {material.totalCopies}{' '}
+                  disponibles
+                </p>
+              </div>
+            )}
         </CardContent>
       </Card>
     </Link>

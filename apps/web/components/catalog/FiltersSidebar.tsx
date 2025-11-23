@@ -60,6 +60,15 @@ export function FiltersSidebar({
     onFiltersChange({ ...filters, languages: newLanguages });
   };
 
+  const handleAvailabilityChange = (
+    value: 'all' | 'available' | 'unavailable'
+  ) => {
+    onFiltersChange({
+      ...filters,
+      availability: value === 'all' ? undefined : value,
+    });
+  };
+
   const clearFilters = () => {
     setYearFromInput('');
     setYearToInput('');
@@ -67,6 +76,7 @@ export function FiltersSidebar({
       query: filters.query,
       types: [],
       languages: [],
+      availability: undefined,
       authorName: undefined,
       yearFrom: undefined,
       yearTo: undefined,
@@ -76,6 +86,7 @@ export function FiltersSidebar({
   const activeFiltersCount =
     filters.types.length +
     filters.languages.length +
+    (filters.availability ? 1 : 0) +
     (filters.yearFrom ? 1 : 0) +
     (filters.yearTo ? 1 : 0);
 
@@ -149,6 +160,54 @@ export function FiltersSidebar({
 
         <Separator />
 
+        {/* Disponibilidad */}
+        <div className="space-y-3">
+          <h3 className="font-medium text-sm">Disponibilidad</h3>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="availability-all"
+                checked={!filters.availability}
+                onCheckedChange={() => handleAvailabilityChange('all')}
+              />
+              <Label
+                htmlFor="availability-all"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Todos
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="availability-available"
+                checked={filters.availability === 'available'}
+                onCheckedChange={() => handleAvailabilityChange('available')}
+              />
+              <Label
+                htmlFor="availability-available"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Solo disponibles
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="availability-unavailable"
+                checked={filters.availability === 'unavailable'}
+                onCheckedChange={() => handleAvailabilityChange('unavailable')}
+              />
+              <Label
+                htmlFor="availability-unavailable"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Solo no disponibles
+              </Label>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
         {/* Año de publicación */}
         <div className="space-y-3">
           <h3 className="font-medium text-sm">Año de publicación</h3>
@@ -169,11 +228,14 @@ export function FiltersSidebar({
                   const numValue = yearFromInput
                     ? parseInt(yearFromInput)
                     : undefined;
-                  onFiltersChange({
-                    ...filters,
-                    yearFrom:
-                      numValue && numValue >= 1900 ? numValue : undefined,
-                  });
+                  const newValue =
+                    numValue && numValue >= 1900 ? numValue : undefined;
+                  if (newValue !== filters.yearFrom) {
+                    onFiltersChange({
+                      ...filters,
+                      yearFrom: newValue,
+                    });
+                  }
                 }}
                 className="h-9"
               />
@@ -194,10 +256,14 @@ export function FiltersSidebar({
                   const numValue = yearToInput
                     ? parseInt(yearToInput)
                     : undefined;
-                  onFiltersChange({
-                    ...filters,
-                    yearTo: numValue && numValue <= 2100 ? numValue : undefined,
-                  });
+                  const newValue =
+                    numValue && numValue <= 2100 ? numValue : undefined;
+                  if (newValue !== filters.yearTo) {
+                    onFiltersChange({
+                      ...filters,
+                      yearTo: newValue,
+                    });
+                  }
                 }}
                 className="h-9"
               />

@@ -1,70 +1,128 @@
 'use client';
 
-import { useState } from 'react';
-import { BookOpen, Calendar, Clock, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BookOpen, Calendar, Clock, Heart, Loader2 } from 'lucide-react';
 import MemberStatsCard from '@/components/member/MemberStatsCard';
 import LoanCard from '@/components/member/LoanCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import EmptyState from '@/components/member/EmptyState';
+import { useAuth } from '@/contexts/AuthContext';
+import { loansApi } from '@/lib/api/loans';
+import { reservationsApi } from '@/lib/api/reservations';
+import { LoanWithDetails } from '@library/types';
+import { toast } from 'sonner';
 
 export default function MemberDashboardPage() {
-  // Mock data - replace with real API calls
-  const [stats] = useState({
-    activeLoans: 3,
-    dueSoon: 1,
-    pendingReservations: 2,
-    totalBorrowed: 15,
+  const { token, user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    activeLoans: 0,
+    overdueLoans: 0,
+    dueSoon: 0,
+    readyForPickup: 0,
+    totalBorrowed: 0,
   });
 
-  const [activeLoans] = useState([
-    {
-      id: 1,
-      material: {
-        title: 'Clean Code',
-        type: 'Libro',
-        author: 'Robert C. Martin',
-      },
-      loanDate: new Date('2024-01-10'),
-      returnDate: new Date('2024-01-24'),
-      status: 'active' as const,
-    },
-    {
-      id: 2,
-      material: {
-        title: 'El Quijote',
-        type: 'Libro',
-        author: 'Miguel de Cervantes',
-      },
-      loanDate: new Date('2024-01-15'),
-      returnDate: new Date('2024-01-22'),
-      status: 'due_soon' as const,
-    },
-  ]);
+  const [activeLoans, setActiveLoans] = useState<LoanWithDetails[]>([]);
+  const [dueSoonLoans, setDueSoonLoans] = useState<LoanWithDetails[]>([]);
+  const [overdueLoans, setOverdueLoans] = useState<LoanWithDetails[]>([]);
 
-  const [overdueLoan] = useState({
-    id: 3,
-    material: {
-      title: 'JavaScript: The Good Parts',
-      type: 'Libro',
-      author: 'Douglas Crockford',
-    },
-    loanDate: new Date('2024-01-01'),
-    returnDate: new Date('2024-01-18'),
-    status: 'overdue' as const,
-  });
+  useEffect(() => {
+    if (token && user) {
+      fetchData();
+    }
+  }, [token, user]);
 
-  const hasOverdueLoans = !!overdueLoan;
+  const fetchData = async () => {
+    try {
+      setLoading(true);
 
-  const handleRenewLoan = (id: number) => {
-    console.log('Renovar préstamo:', id);
-    // Implement renewal logic
+      // Fetch loan stats and reservations stats
+      const [loanStats, reservationStats, loansResponse] = await Promise.all([
+        loansApi.getMemberStats(user!.id, token!),
+        reservationsApi.getMemberStats(user!.id, token!),
+        loansApi.getAll({ pageSize: 100 }, token!),
+      ]);
+
+      // Filter only active loans (not returned)
+      const activeOnlyLoans = loansResponse.loans.filter(
+        (loan) => loan.status === 'ACTIVE' && !loan.returnDate
+      );
+
+      // Count loans due within 3 days
+      const threeDaysFromNow = new Date();
+      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+      const now = new Date();
+
+      const overdue = activeOnlyLoans.filter(
+        (loan) => new Date(loan.dueDate) < now
+      );
+
+      const dueSoon = activeOnlyLoans.filter((loan) => {
+        const dueDate = new Date(loan.dueDate);
+        return dueDate >= now && dueDate <= threeDaysFromNow;
+      });
+
+      const active = activeOnlyLoans.filter((loan) => {
+        const dueDate = new Date(loan.dueDate);
+        return dueDate > threeDaysFromNow;
+      });
+
+      console.log('Dashboard Home - Todos los préstamos:', loansResponse.loans);
+      console.log(
+        'Dashboard Home - Préstamos activos solamente:',
+        activeOnlyLoans
+      );
+      console.log('Dashboard Home - Vencidos:', overdue);
+      console.log('Dashboard Home - Por vencer:', dueSoon);
+      console.log('Dashboard Home - Activos (>3 días):', active);
+
+      setStats({
+        activeLoans: loanStats.activeLoans,
+        overdueLoans: loanStats.overdueLoans,
+        dueSoon: dueSoon.length,
+        readyForPickup: reservationStats.readyForPickup,
+        totalBorrowed: loansResponse.total,
+      });
+
+      setActiveLoans(active);
+      setDueSoonLoans(dueSoon);
+      setOverdueLoans(overdue);
+    } catch (error: any) {
+      toast.error('Error al cargar datos', {
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleViewDetails = (id: number) => {
-    console.log('Ver detalles préstamo:', id);
-    // Implement view details logic
+  const hasOverdueLoans = overdueLoans.length > 0;
+
+  const handleRenewLoan = async (id: string) => {
+    try {
+      await loansApi.renewLoan(id, token!);
+      toast.success('Préstamo renovado exitosamente');
+      fetchData();
+    } catch (error: any) {
+      toast.error('Error al renovar préstamo', {
+        description: error.message,
+      });
+    }
   };
+
+  const handleViewDetails = (id: string) => {
+    window.location.href = `/dashboard/member/loans`;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -79,7 +137,7 @@ export default function MemberDashboardPage() {
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MemberStatsCard
-          title="Prestamos activos"
+          title="Préstamos activos"
           value={stats.activeLoans}
           icon={BookOpen}
           description="Materiales en tu poder"
@@ -96,10 +154,10 @@ export default function MemberDashboardPage() {
           attention={stats.dueSoon > 0}
         />
         <MemberStatsCard
-          title="Reservas pendientes"
-          value={stats.pendingReservations}
+          title="Listas para recoger"
+          value={stats.readyForPickup}
           icon={Calendar}
-          description="Esperando disponibilidad"
+          description="Reservas disponibles"
           link="/dashboard/member/reservations"
           linkText="Ver reservas"
         />
@@ -135,22 +193,36 @@ export default function MemberDashboardPage() {
       {/* Active Loans Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Prestamos activos</CardTitle>
+          <CardTitle>Préstamos activos</CardTitle>
         </CardHeader>
         <CardContent>
-          {activeLoans.length > 0 ? (
+          {overdueLoans.length > 0 ||
+          dueSoonLoans.length > 0 ||
+          activeLoans.length > 0 ? (
             <div className="space-y-4">
-              {hasOverdueLoans && (
+              {overdueLoans.map((loan) => (
                 <LoanCard
-                  {...overdueLoan}
+                  key={loan.id}
+                  loan={loan}
+                  status="overdue"
                   onRenew={handleRenewLoan}
                   onViewDetails={handleViewDetails}
                 />
-              )}
+              ))}
+              {dueSoonLoans.map((loan) => (
+                <LoanCard
+                  key={loan.id}
+                  loan={loan}
+                  status="due_soon"
+                  onRenew={handleRenewLoan}
+                  onViewDetails={handleViewDetails}
+                />
+              ))}
               {activeLoans.map((loan) => (
                 <LoanCard
                   key={loan.id}
-                  {...loan}
+                  loan={loan}
+                  status="active"
                   onRenew={handleRenewLoan}
                   onViewDetails={handleViewDetails}
                 />
@@ -163,13 +235,11 @@ export default function MemberDashboardPage() {
       </Card>
 
       {/* Available Reservations */}
-      {stats.pendingReservations > 0 && (
+      {stats.readyForPickup > 0 && (
         <Alert className="border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20">
           <AlertDescription className="text-green-800 dark:text-green-200">
-            Tienes {stats.pendingReservations}{' '}
-            {stats.pendingReservations === 1
-              ? 'reserva lista'
-              : 'reservas listas'}{' '}
+            Tienes {stats.readyForPickup}{' '}
+            {stats.readyForPickup === 1 ? 'reserva lista' : 'reservas listas'}{' '}
             para recoger. Visita la sección de reservas para más detalles.
           </AlertDescription>
         </Alert>

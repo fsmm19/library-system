@@ -96,8 +96,8 @@ export default function UsersPage() {
 
     try {
       setIsLoading(true);
-      const response = await usersApi.getAll(token);
-      setUsers(response.data);
+      const response = await usersApi.getAll({ limit: 100 }, token);
+      setUsers(response.data || []);
     } catch (error) {
       toast.error('Error al cargar usuarios', {
         description: 'No se pudieron cargar los usuarios de la base de datos',
@@ -111,7 +111,7 @@ export default function UsersPage() {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = (users || []).filter((user) => {
     const matchesSearch =
       user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||

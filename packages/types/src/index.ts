@@ -4,3 +4,5 @@ export * from './auth';
 export * from './api';
 export * from './material';
 export * from './material-copy';
+export * from './loan';
+export * from './reservation';

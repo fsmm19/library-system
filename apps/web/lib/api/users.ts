@@ -66,19 +66,41 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
+export interface GetUsersParams {
+  role?: 'MEMBER' | 'LIBRARIAN';
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface GetUsersResponse {
+  data: User[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export const usersApi = {
-  async getAll(token: string, page = 1, limit = 100): Promise<UsersResponse> {
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-    });
+  async getAll(
+    params: GetUsersParams,
+    token: string
+  ): Promise<GetUsersResponse> {
+    const queryParams = new URLSearchParams();
+
+    if (params.role) queryParams.append('role', params.role);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
 
     const response = await fetch(`${API_URL}/users?${queryParams.toString()}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    return handleResponse<UsersResponse>(response);
+    return handleResponse<GetUsersResponse>(response);
   },
 
   async getById(userId: string, token: string): Promise<User> {
@@ -102,7 +124,10 @@ export const usersApi = {
     return result.user;
   },
 
-  async createLibrarian(data: CreateLibrarianData, token: string): Promise<User> {
+  async createLibrarian(
+    data: CreateLibrarianData,
+    token: string
+  ): Promise<User> {
     const response = await fetch(`${API_URL}/auth/register/librarian`, {
       method: 'POST',
       headers: {

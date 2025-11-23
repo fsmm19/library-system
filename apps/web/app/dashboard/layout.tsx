@@ -62,11 +62,11 @@ export default function DashboardLayout({
         <div className="flex items-center gap-3 rounded-lg bg-accent/50 p-3">
           <Avatar className="h-9 w-9">
             <AvatarFallback className="bg-primary text-primary-foreground">
-              {currentUserName
-                .split(' ')
-                .map((n) => n[0])
-                .join('')
-                .toUpperCase()}
+              {(() => {
+                const parts = currentUserName.trim().split(' ');
+                if (parts.length === 1) return parts[0][0].toUpperCase();
+                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+              })()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">

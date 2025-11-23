@@ -5,32 +5,33 @@ import { BookOpen, Calendar, RefreshCw } from 'lucide-react';
 import LoanProgressBar from './LoanProgressBar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { LoanWithDetails } from '@library/types';
 
 interface LoanCardProps {
-  id: number;
-  material: {
-    title: string;
-    type: string;
-    author?: string;
-  };
-  loanDate: Date | string;
-  returnDate: Date | string;
+  loan: LoanWithDetails;
   status: 'active' | 'overdue' | 'due_soon';
   variant?: 'compact' | 'expanded';
-  onRenew?: (id: number) => void;
-  onViewDetails?: (id: number) => void;
+  onRenew?: (id: string) => void;
+  onViewDetails?: (id: string) => void;
 }
 
 export default function LoanCard({
-  id,
-  material,
-  loanDate,
-  returnDate,
+  loan,
   status,
   variant = 'compact',
   onRenew,
   onViewDetails,
 }: LoanCardProps) {
+  const material = loan.copy.material;
+  const materialType =
+    material.type === 'BOOK'
+      ? 'Libro'
+      : material.type === 'MAGAZINE'
+      ? 'Revista'
+      : material.type === 'DVD'
+      ? 'DVD'
+      : 'Otro';
+
   const getStatusBadge = () => {
     switch (status) {
       case 'overdue':
@@ -54,7 +55,7 @@ export default function LoanCard({
   };
 
   const formattedReturnDate = format(
-    typeof returnDate === 'string' ? new Date(returnDate) : returnDate,
+    new Date(loan.dueDate),
     "d 'de' MMMM, yyyy",
     { locale: es }
   );
@@ -71,14 +72,12 @@ export default function LoanCard({
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold truncate">{material.title}</h3>
-                  {material.author && (
-                    <p className="text-sm text-muted-foreground truncate">
-                      {material.author}
-                    </p>
-                  )}
+                  <p className="text-sm text-muted-foreground truncate">
+                    Copia: {loan.copy.id.slice(0, 8)}
+                  </p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-xs">
-                      {material.type}
+                      {materialType}
                     </Badge>
                     {getStatusBadge()}
                   </div>
@@ -86,18 +85,18 @@ export default function LoanCard({
               </div>
               <div className="mt-4">
                 <LoanProgressBar
-                  loanDate={loanDate}
-                  returnDate={returnDate}
+                  loanDate={loan.loanDate}
+                  returnDate={loan.dueDate}
                   variant={getProgressVariant()}
                 />
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              {onRenew && (
+              {onRenew && loan.renewalCount < 2 && (
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => onRenew(id)}
+                  onClick={() => onRenew(loan.id)}
                   disabled={status === 'overdue'}
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -107,7 +106,7 @@ export default function LoanCard({
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => onViewDetails(id)}
+                  onClick={() => onViewDetails(loan.id)}
                 >
                   Ver
                 </Button>
@@ -130,18 +129,16 @@ export default function LoanCard({
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-semibold">{material.title}</h3>
-                {material.author && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {material.author}
-                  </p>
-                )}
+                <p className="text-sm text-muted-foreground mt-1">
+                  Copia: {loan.copy.id.slice(0, 8)}
+                </p>
               </div>
               {getStatusBadge()}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Tipo</p>
-                <p className="font-medium mt-1">{material.type}</p>
+                <p className="font-medium mt-1">{materialType}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Fecha de devolución</p>
@@ -150,8 +147,8 @@ export default function LoanCard({
             </div>
             <div className="mt-4">
               <LoanProgressBar
-                loanDate={loanDate}
-                returnDate={returnDate}
+                loanDate={loan.loanDate}
+                returnDate={loan.dueDate}
                 variant={getProgressVariant()}
               />
             </div>
@@ -160,15 +157,15 @@ export default function LoanCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => onViewDetails(id)}
+                  onClick={() => onViewDetails(loan.id)}
                 >
                   Ver detalles
                 </Button>
               )}
-              {onRenew && (
+              {onRenew && loan.renewalCount < 2 && (
                 <Button
                   size="sm"
-                  onClick={() => onRenew(id)}
+                  onClick={() => onRenew(loan.id)}
                   disabled={status === 'overdue'}
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />

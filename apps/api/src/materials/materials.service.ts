@@ -125,11 +125,32 @@ export class MaterialsService {
       include: {
         authors: true,
         book: true,
+        copies: {
+          select: {
+            status: true,
+          },
+        },
       },
     });
 
+    // Add copy statistics to each material
+    const materialsWithCopyStats = materials.map((material) => {
+      const totalCopies = material.copies.length;
+      const availableCopies = material.copies.filter(
+        (copy) => copy.status === 'AVAILABLE',
+      ).length;
+
+      const { copies, ...materialWithoutCopies } = material;
+
+      return {
+        ...materialWithoutCopies,
+        totalCopies,
+        availableCopies,
+      };
+    });
+
     return {
-      materials,
+      materials: materialsWithCopyStats,
       total,
       page,
       pageSize,
@@ -143,6 +164,11 @@ export class MaterialsService {
       include: {
         authors: true,
         book: true,
+        copies: {
+          select: {
+            status: true,
+          },
+        },
       },
     });
 
@@ -150,7 +176,19 @@ export class MaterialsService {
       throw new NotFoundException(`Material with ID ${id} not found`);
     }
 
-    return material;
+    // Add copy statistics
+    const totalCopies = material.copies.length;
+    const availableCopies = material.copies.filter(
+      (copy) => copy.status === 'AVAILABLE',
+    ).length;
+
+    const { copies, ...materialWithoutCopies } = material;
+
+    return {
+      ...materialWithoutCopies,
+      totalCopies,
+      availableCopies,
+    };
   }
 
   async update(id: string, updateMaterialDto: UpdateMaterialDto) {

@@ -1,13 +1,22 @@
 import { NavLink } from '@/components/NavLink';
-import { BarChart3, FileText, Home, Package, Users, Copy } from 'lucide-react';
+import {
+  BarChart3,
+  FileText,
+  Home,
+  Package,
+  Users,
+  Copy,
+  BookOpen,
+} from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard/librarian', icon: Home },
   { name: 'Usuarios', href: '/dashboard/librarian/users', icon: Users },
   { name: 'Materiales', href: '/dashboard/librarian/materials', icon: Package },
   { name: 'Copias', href: '/dashboard/librarian/copies', icon: Copy },
-  { name: 'Prestamos', href: '/dashboard/librarian/loans', icon: FileText },
+  { name: 'Préstamos', href: '/dashboard/librarian/loans', icon: FileText },
   { name: 'Reportes', href: '/dashboard/librarian/reports', icon: BarChart3 },
+  { name: 'Catálogo', href: '/catalog', icon: BookOpen },
 ];
 
 export default function LibrarianSidebar() {

@@ -71,10 +71,10 @@ const statusVariants: Record<
 };
 
 const typeLabels: Record<string, string> = {
-  book: 'Libro',
-  magazine: 'Revista',
-  dvd: 'DVD',
-  other: 'Otro',
+  BOOK: 'Libro',
+  MAGAZINE: 'Revista',
+  DVD: 'DVD',
+  OTHER: 'Otro',
 };
 
 export default function MaterialDetailsSheet({

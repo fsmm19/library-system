@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -35,12 +34,21 @@ export function DatePicker({
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
 
-  const date = value ? new Date(value) : undefined;
+  // Parse date string as local date to avoid timezone issues
+  const date = value
+    ? (() => {
+        const [year, month, day] = value.split('-').map(Number);
+        return new Date(year, month - 1, day);
+      })()
+    : undefined;
 
   const handleSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      // Format as YYYY-MM-DD
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      // Format as YYYY-MM-DD using local date components
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
       onChange?.(formattedDate);
     } else {
       onChange?.(undefined);
@@ -61,7 +69,7 @@ export function DatePicker({
           disabled={disabled}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, 'PPP', { locale: es }) : placeholder}
+          {date ? format(date, 'dd/MM/yyyy') : placeholder}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

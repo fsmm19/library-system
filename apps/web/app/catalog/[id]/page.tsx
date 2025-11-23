@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MaterialType, MaterialWithDetails } from '@library/types';
 import { materialsApi } from '@/lib/api/materials';
+import { reservationsApi } from '@/lib/api/reservations';
 import {
   BookOpen,
   Calendar,
@@ -14,13 +15,16 @@ import {
   Newspaper,
   Share2,
   Tag,
+  BookMarked,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTypeIcon, getTypeLabel } from '@/lib/utils/catalog-utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useReservations } from '@/contexts/ReservationsContext';
 
 function formatAuthors(authors: MaterialWithDetails['authors']): string {
   if (!authors || authors.length === 0) return 'Autor desconocido';
@@ -48,12 +52,15 @@ function formatDate(dateString: string | null): string {
 export default function MaterialDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const { activeReservations, addReservation } = useReservations();
   const [material, setMaterial] = useState<MaterialWithDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isReserving, setIsReserving] = useState(false);
 
   const id = params.id as string;
+  const hasActiveReservation = id ? activeReservations.has(id) : false;
 
   useEffect(() => {
     const fetchMaterial = async () => {
@@ -92,6 +99,62 @@ export default function MaterialDetailPage() {
       // Fallback: Copy to clipboard
       await navigator.clipboard.writeText(window.location.href);
       alert('Enlace copiado al portapapeles');
+    }
+  };
+
+  const handleReserveMaterial = async () => {
+    if (!user) {
+      router.push('/auth');
+      return;
+    }
+
+    if (!token || !material) return;
+
+    try {
+      setIsReserving(true);
+      await reservationsApi.create(
+        {
+          materialId: material.id,
+          memberId: user.id,
+        },
+        token
+      );
+
+      // Mensaje de éxito diferenciado según disponibilidad
+      if (material.availableCopies && material.availableCopies > 0) {
+        toast.success('¡Reserva confirmada!', {
+          description:
+            'El material está listo para recoger. Tienes 7 días para retirarlo.',
+        });
+      } else {
+        toast.success('Reserva registrada', {
+          description: 'Te notificaremos cuando el material esté disponible.',
+        });
+      }
+      addReservation(material.id);
+    } catch (error: any) {
+      // Detectar si ya tiene reserva activa
+      if (
+        error.message &&
+        error.message.includes('Ya tienes una reserva activa')
+      ) {
+        addReservation(material.id);
+        toast.info('Ya tienes una reserva de este material', {
+          description: 'Puedes ver tus reservas en tu panel de control',
+          action: {
+            label: 'Ver reservas',
+            onClick: () => router.push('/dashboard/member/reservations'),
+          },
+        });
+      } else {
+        toast.error('Error al crear reserva', {
+          description:
+            error.message ||
+            'No se pudo completar la solicitud. Intenta nuevamente.',
+        });
+      }
+    } finally {
+      setIsReserving(false);
     }
   };
 
@@ -167,7 +230,7 @@ export default function MaterialDetailPage() {
               href="/catalog"
               className="hover:text-foreground transition-colors"
             >
-              Catalogo
+              Catálogo
             </Link>
             <span>/</span>
             <span className="text-foreground">
@@ -225,21 +288,97 @@ export default function MaterialDetailPage() {
                     )}
                     {getTypeLabel(material.type)}
                   </Badge>
+                  {material.availableCopies !== undefined &&
+                    material.totalCopies !== undefined && (
+                      <Badge
+                        variant={
+                          material.availableCopies === 0
+                            ? 'destructive'
+                            : material.availableCopies / material.totalCopies <=
+                              0.25
+                            ? 'outline'
+                            : 'default'
+                        }
+                        className="text-sm"
+                      >
+                        {material.availableCopies === 0
+                          ? 'No disponible'
+                          : `${material.availableCopies} de ${material.totalCopies} disponibles`}
+                      </Badge>
+                    )}
                 </div>
+
+                {material.availableCopies !== undefined &&
+                  material.availableCopies === 0 && (
+                    <div className="bg-muted p-3 rounded-lg text-sm text-muted-foreground mb-3">
+                      <p className="font-medium mb-1">
+                        No hay copias disponibles
+                      </p>
+                      <p className="text-xs">
+                        Puedes hacer una reserva y te notificaremos cuando esté
+                        disponible.
+                      </p>
+                    </div>
+                  )}
 
                 <div className="space-y-2">
                   <Button className="w-full" size="lg" onClick={handleShare}>
                     <Share2 className="h-4 w-4 mr-2" />
                     Compartir
                   </Button>
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    variant="secondary"
-                    onClick={handleRequestLoan}
-                  >
-                    Solicitar préstamo
-                  </Button>
+                  {user && user.role === 'MEMBER' && (
+                    <>
+                      {material.availableCopies !== undefined &&
+                      material.availableCopies === 0 ? (
+                        <Button
+                          className="w-full"
+                          size="lg"
+                          variant={
+                            hasActiveReservation ? 'secondary' : 'outline'
+                          }
+                          onClick={handleReserveMaterial}
+                          disabled={isReserving || hasActiveReservation}
+                        >
+                          <BookMarked className="h-4 w-4 mr-2" />
+                          {hasActiveReservation
+                            ? 'Ya reservado'
+                            : isReserving
+                            ? 'Reservando...'
+                            : 'Reservar material'}
+                        </Button>
+                      ) : (
+                        <Button
+                          className="w-full"
+                          size="lg"
+                          variant={
+                            hasActiveReservation ? 'secondary' : 'default'
+                          }
+                          onClick={handleReserveMaterial}
+                          disabled={isReserving || hasActiveReservation}
+                        >
+                          <BookMarked className="h-4 w-4 mr-2" />
+                          {hasActiveReservation
+                            ? 'Ya reservado'
+                            : isReserving
+                            ? 'Reservando...'
+                            : material.availableCopies &&
+                              material.availableCopies > 0
+                            ? 'Reservar para recoger'
+                            : 'Agregar a lista de espera'}
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  {!user && (
+                    <Button
+                      className="w-full"
+                      size="lg"
+                      variant="secondary"
+                      onClick={() => router.push('/auth')}
+                    >
+                      Iniciar sesión para solicitar
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -360,7 +499,7 @@ export default function MaterialDetailPage() {
             {material.authors.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Autores</CardTitle>
+                  <CardTitle>Autor(es)</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">

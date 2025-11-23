@@ -118,8 +118,8 @@ export default function CopiesPage() {
 
     setLoading(true);
     try {
-      const data = await materialCopiesApi.getAll(token);
-      setCopies(data);
+      const response = await materialCopiesApi.getAll({}, token);
+      setCopies(response.copies);
     } catch (error) {
       console.error('Error loading copies:', error);
       toast.error('Error al cargar las copias');
@@ -164,7 +164,6 @@ export default function CopiesPage() {
 
   const handleAddCopy = (newCopy: MaterialCopyWithDetails) => {
     setCopies([newCopy, ...copies]);
-    toast.success('Copia agregada correctamente');
   };
 
   const handleDeleteClick = (copy: MaterialCopyWithDetails) => {
@@ -340,7 +339,7 @@ export default function CopiesPage() {
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>Material</TableHead>
-              <TableHead>Autores</TableHead>
+              <TableHead>Autor(es)</TableHead>
               <TableHead>Fecha de adquisición</TableHead>
               <TableHead>Condición</TableHead>
               <TableHead>Estado</TableHead>
@@ -368,9 +367,13 @@ export default function CopiesPage() {
                   <TableCell>
                     {copy.material.authors && copy.material.authors.length > 0
                       ? copy.material.authors
-                          .map(
-                            (author) => `${author.firstName} ${author.lastName}`
-                          )
+                          .map((author) => {
+                            const parts = [author.firstName];
+                            if (author.middleName)
+                              parts.push(author.middleName);
+                            parts.push(author.lastName);
+                            return parts.join(' ');
+                          })
                           .join(', ')
                       : 'N/A'}
                   </TableCell>
@@ -399,28 +402,6 @@ export default function CopiesPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handleUpdateStatus(
-                              copy.id,
-                              MaterialCopyStatus.AVAILABLE
-                            )
-                          }
-                          disabled={copy.status === 'AVAILABLE'}
-                        >
-                          Marcar como disponible
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handleUpdateStatus(
-                              copy.id,
-                              MaterialCopyStatus.BORROWED
-                            )
-                          }
-                          disabled={copy.status === 'BORROWED'}
-                        >
-                          Marcar como prestado
-                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() =>
                             handleUpdateStatus(

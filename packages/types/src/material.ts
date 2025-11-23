@@ -35,10 +35,13 @@ export interface MaterialWithDetails extends Material {
   authors: Author[];
   book: Book | null;
   thumbnail?: string;
+  totalCopies?: number;
+  availableCopies?: number;
 }
 
 // API Request/Response types
 export interface CreateAuthorData {
+  id?: string;
   firstName: string;
   middleName?: string;
   lastName: string;

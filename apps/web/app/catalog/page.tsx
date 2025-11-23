@@ -51,15 +51,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Bell, Settings, LogOut, User, LayoutDashboard } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function CatalogPage() {
   const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    toast.success('Sesión cerrada correctamente');
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({
     query: '',
     types: [],
     languages: [],
+    availability: undefined,
     authorName: undefined,
     yearFrom: undefined,
     yearTo: undefined,
@@ -76,6 +85,12 @@ export default function CatalogPage() {
   const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilters({ ...filters, query: '' });
+    }
+  }, [searchQuery]);
+
+  useEffect(() => {
     setPage(1);
   }, [filters, sortBy, pageSize]);
 
@@ -89,11 +104,17 @@ export default function CatalogPage() {
           languages: filters.languages,
           authorName: filters.authorName,
           yearFrom:
-            filters.yearFrom && filters.yearFrom >= 0
+            filters.yearFrom !== undefined &&
+            filters.yearFrom !== null &&
+            filters.yearFrom.toString().trim() !== '' &&
+            filters.yearFrom >= 0
               ? filters.yearFrom
               : undefined,
           yearTo:
-            filters.yearTo && filters.yearTo <= 2100
+            filters.yearTo !== undefined &&
+            filters.yearTo !== null &&
+            filters.yearTo.toString().trim() !== '' &&
+            filters.yearTo <= 2100
               ? filters.yearTo
               : undefined,
           sortBy,
@@ -102,9 +123,22 @@ export default function CatalogPage() {
         };
 
         const response = await materialsApi.search(searchParams, undefined);
-        setMaterials(response.materials);
-        setTotal(response.total);
-        setTotalPages(response.totalPages);
+
+        // Aplicar filtro de disponibilidad del lado del cliente
+        let filteredMaterials = response.materials;
+        if (filters.availability === 'available') {
+          filteredMaterials = response.materials.filter(
+            (m) => m.availableCopies && m.availableCopies > 0
+          );
+        } else if (filters.availability === 'unavailable') {
+          filteredMaterials = response.materials.filter(
+            (m) => !m.availableCopies || m.availableCopies === 0
+          );
+        }
+
+        setMaterials(filteredMaterials);
+        setTotal(filteredMaterials.length);
+        setTotalPages(Math.ceil(filteredMaterials.length / pageSize));
       } catch (error) {
         console.error('Error fetching materials:', error);
       } finally {
@@ -116,6 +150,10 @@ export default function CatalogPage() {
   }, [filters, sortBy, page, pageSize, searchQuery]);
 
   const handleSearch = () => {
+    if (searchQuery.trim() === '') {
+      setFilters({ ...filters, query: '' });
+      return;
+    }
     setFilters({ ...filters, query: searchQuery });
   };
 
@@ -125,6 +163,7 @@ export default function CatalogPage() {
       query: '',
       types: [],
       languages: [],
+      availability: undefined,
       authorName: undefined,
       yearFrom: undefined,
       yearTo: undefined,
@@ -219,70 +258,127 @@ export default function CatalogPage() {
             {/* Auth Section */}
             <div className="flex items-center gap-2">
               {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="gap-2">
-                      <User className="h-4 w-4" />
-                      <span className="hidden sm:inline">
-                        {user.firstName} {user.lastName}
-                      </span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium">
-                          {user.firstName} {user.lastName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {user.email}
-                        </p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {user.role === 'LIBRARIAN'
-                            ? 'Bibliotecario'
-                            : 'Miembro'}
-                        </p>
+                <>
+                  {/* Notifications */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="relative">
+                        <Bell className="h-5 w-5" />
+                        <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                          3
+                        </Badge>
+                        <span className="sr-only">Notificaciones</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80">
+                      <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <div className="space-y-2 p-2">
+                        <div className="rounded-lg bg-accent/50 p-3 text-sm">
+                          <p className="font-medium">Préstamo vencido</p>
+                          <p className="text-muted-foreground text-xs mt-1">
+                            Hay préstamos que requieren atención
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-accent/50 p-3 text-sm">
+                          <p className="font-medium">
+                            Nuevo material disponible
+                          </p>
+                          <p className="text-muted-foreground text-xs mt-1">
+                            Se han agregado nuevos materiales al catálogo
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-accent/50 p-3 text-sm">
+                          <p className="font-medium">
+                            Recordatorio de devolución
+                          </p>
+                          <p className="text-muted-foreground text-xs mt-1">
+                            Tienes un préstamo que vence pronto
+                          </p>
+                        </div>
                       </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href={
-                          user.role === 'LIBRARIAN'
-                            ? '/dashboard/librarian/profile'
-                            : '/dashboard/member/profile'
-                        }
-                      >
-                        Mi perfil
-                      </Link>
-                    </DropdownMenuItem>
-                    {user.role === 'LIBRARIAN' && (
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* User Menu */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary text-primary-foreground">
+                            {user.firstName[0]?.toUpperCase()}
+                            {user.lastName[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="hidden sm:flex sm:flex-col sm:items-start sm:gap-0">
+                          <span className="text-sm">
+                            {user.firstName} {user.lastName}
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className="text-xs h-4 px-1"
+                          >
+                            {user.role === 'LIBRARIAN'
+                              ? 'Bibliotecario'
+                              : 'Miembro'}
+                          </Badge>
+                        </div>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link href="/dashboard/librarian">
-                          Panel de administración
+                        <Link
+                          href={
+                            user.role === 'LIBRARIAN'
+                              ? '/dashboard/librarian/profile'
+                              : '/dashboard/member/profile'
+                          }
+                        >
+                          <User className="mr-2 h-4 w-4" />
+                          Perfil
                         </Link>
                       </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href={
-                          user.role === 'LIBRARIAN'
-                            ? '/dashboard/librarian'
-                            : '/dashboard/member'
-                        }
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={
+                            user.role === 'LIBRARIAN'
+                              ? '/dashboard/librarian/settings'
+                              : '/dashboard/member/settings'
+                          }
+                        >
+                          <Settings className="mr-2 h-4 w-4" />
+                          Configuración
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={
+                            user.role === 'LIBRARIAN'
+                              ? '/dashboard/librarian'
+                              : '/dashboard/member'
+                          }
+                        >
+                          <LayoutDashboard className="mr-2 h-4 w-4" />
+                          Panel de{' '}
+                          {user.role === 'LIBRARIAN'
+                            ? 'administración'
+                            : 'usuario'}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={handleLogout}
+                        className="text-destructive"
                       >
-                        Mis prestamos
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={logout}
-                      className="text-destructive"
-                    >
-                      Cerrar sesión
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Cerrar sesión
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
               ) : (
                 <>
                   <Button

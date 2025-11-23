@@ -36,3 +36,11 @@ export interface Librarian {
   hireDate: string;
   endDate: string | null;
 }
+
+export interface MemberWithUser extends Member {
+  user: User;
+}
+
+export interface LibrarianWithUser extends Librarian {
+  user: User;
+}

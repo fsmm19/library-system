@@ -22,19 +22,26 @@ export class MaterialsApiError extends Error {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({
-      message: 'An error occurred',
-    }));
-    console.error('API Error:', {
-      status: response.status,
-      statusText: response.statusText,
-      error,
-      url: response.url,
-    });
+    let errorData;
+    const responseText = await response.text();
+
+    try {
+      errorData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.log('Failed to parse error response:', responseText);
+      errorData = {
+        message: response.statusText || 'An error occurred',
+      };
+    }
+
+    // NestJS error format: { statusCode, message, error }
+    const message = errorData.message || errorData.error || 'An error occurred';
+    const errors = errorData.errors;
+
     throw new MaterialsApiError(
-      error.message || 'An error occurred',
+      Array.isArray(message) ? message[0] : message,
       response.status,
-      error.errors
+      errors
     );
   }
   return response.json();

@@ -21,7 +21,7 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Mi Perfil</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Mi perfil</h1>
         <p className="text-muted-foreground mt-1">
           Información de tu cuenta y configuración personal
         </p>
@@ -34,8 +34,8 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center text-center">
               <Avatar className="h-24 w-24 mb-4">
                 <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                  {user.firstName[0]}
-                  {user.lastName[0]}
+                  {user.firstName[0].toUpperCase()}
+                  {user.lastName[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <h2 className="text-2xl font-bold">

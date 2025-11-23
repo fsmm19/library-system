@@ -19,12 +19,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Combobox } from '@/components/ui/combobox';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { materialsApi } from '@/lib/api/materials';
 import { materialCopiesApi } from '@/lib/api/material-copies';
@@ -76,7 +77,6 @@ export default function AddCopyDialog({
   const { token } = useAuth();
   const [materials, setMaterials] = useState<MaterialWithDetails[]>([]);
   const [loadingMaterials, setLoadingMaterials] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const {
     register,
@@ -95,7 +95,7 @@ export default function AddCopyDialog({
     },
   });
 
-  // Load materials when dialog opens
+  // Load all materials when dialog opens
   useEffect(() => {
     const loadMaterials = async () => {
       if (open && token) {
@@ -103,9 +103,8 @@ export default function AddCopyDialog({
         try {
           const response = await materialsApi.search(
             {
-              query: searchQuery,
               page: 1,
-              pageSize: 50,
+              pageSize: 100,
             },
             token
           );
@@ -119,7 +118,7 @@ export default function AddCopyDialog({
       }
     };
     loadMaterials();
-  }, [open, token, searchQuery]);
+  }, [open, token]);
 
   // Set preselected material
   useEffect(() => {
@@ -148,7 +147,6 @@ export default function AddCopyDialog({
 
   const handleClose = () => {
     reset();
-    setSearchQuery('');
     onOpenChange(false);
   };
 
@@ -176,46 +174,36 @@ export default function AddCopyDialog({
                 disabled
               />
             ) : (
-              <>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar material..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+              <Controller
+                control={control}
+                name="materialId"
+                render={({ field }) => (
+                  <Combobox
+                    options={materials.map((material) => {
+                      const authorsText =
+                        material.authors && material.authors.length > 0
+                          ? material.authors
+                              .map((author) =>
+                                `${author.firstName} ${author.lastName}`.trim()
+                              )
+                              .join(', ')
+                          : '';
+                      return {
+                        value: material.id,
+                        label: `${material.title}${
+                          authorsText ? ` - ${authorsText}` : ''
+                        }`,
+                      };
+                    })}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Buscar y seleccionar material..."
+                    searchPlaceholder="Buscar por título o autor(es)..."
+                    emptyText="No se encontró ningún material."
+                    disabled={isSubmitting || loadingMaterials}
                   />
-                </div>
-                <Controller
-                  control={control}
-                  name="materialId"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={isSubmitting || loadingMaterials}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar material" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {materials.map((material) => (
-                          <SelectItem key={material.id} value={material.id}>
-                            {material.title}
-                            {material.authors &&
-                              material.authors.length > 0 && (
-                                <span className="text-muted-foreground text-sm ml-2">
-                                  - {material.authors[0].firstName}{' '}
-                                  {material.authors[0].lastName}
-                                </span>
-                              )}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </>
+                )}
+              />
             )}
             {errors.materialId && (
               <p className="text-sm text-destructive">
@@ -267,11 +255,13 @@ export default function AddCopyDialog({
                       <SelectValue placeholder="Seleccionar condición" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(conditionLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
+                      {Object.entries(conditionLabels)
+                        .filter(([value]) => value !== 'LOST')
+                        .map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 )}
@@ -300,11 +290,16 @@ export default function AddCopyDialog({
                       <SelectValue placeholder="Seleccionar estado" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(statusLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
+                      {Object.entries(statusLabels)
+                        .filter(
+                          ([value]) =>
+                            !['BORROWED', 'RESERVED', 'REMOVED'].includes(value)
+                        )
+                        .map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 )}

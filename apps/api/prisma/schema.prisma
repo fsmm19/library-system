@@ -35,7 +35,9 @@ model Member {
   accountState AccountState
   conditions   MemberCondition[] @default([])
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loans        Loan[]
+  reservations Reservation[]
 
   @@index([accountState])
   @@map("members")
@@ -47,7 +49,9 @@ model Librarian {
   hireDate DateTime  @db.Date
   endDate  DateTime? @db.Date
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processedLoans Loan[] @relation("ProcessedLoans")
+  issuedFines    Fine[] @relation("IssuedFines")
 
   @@map("librarians")
 }
@@ -92,21 +96,44 @@ enum MaterialCopyStatus {
   REMOVED
 }
 
+enum LoanStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+  CANCELLED
+}
+
+enum FineStatus {
+  PENDING
+  PAID
+  WAIVED
+}
+
+enum ReservationStatus {
+  PENDING
+  READY
+  PICKED_UP
+  EXPIRED
+  CANCELLED
+}
+
 model Material {
-  id            String        @id @default(uuid()) @db.Uuid
-  title         String        @db.VarChar(500)
-  subtitle      String?       @db.VarChar(500)
-  description   String?       @db.Text
+  id            String       @id @default(uuid()) @db.Uuid
+  title         String       @db.VarChar(500)
+  subtitle      String?      @db.VarChar(500)
+  description   String?      @db.Text
   type          MaterialType
-  language      String        @db.VarChar(50)
-  publishedDate DateTime?     @db.Date
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  language      String       @db.VarChar(50)
+  publishedDate DateTime?    @db.Date
+  maxLoanDays   Int?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   deletedAt     DateTime?
 
-  authors Author[]
-  book    Book?
-  copies  MaterialCopy[]
+  authors      Author[]
+  book         Book?
+  copies       MaterialCopy[]
+  reservations Reservation[]
 
   @@index([title])
   @@index([type])
@@ -144,16 +171,18 @@ model Book {
 }
 
 model MaterialCopy {
-  id              String                 @id @default(uuid()) @db.Uuid
-  acquisitionDate DateTime               @db.Date
+  id              String                @id @default(uuid()) @db.Uuid
+  acquisitionDate DateTime              @db.Date
   condition       MaterialCopyCondition
   status          MaterialCopyStatus
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
   deletedAt       DateTime?
 
-  materialId String   @db.Uuid
-  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  materialId   String        @db.Uuid
+  material     Material      @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  loans        Loan[]
+  reservations Reservation[]
 
   @@index([materialId])
   @@index([status])
@@ -161,4 +190,105 @@ model MaterialCopy {
   @@index([createdAt])
   @@index([deletedAt])
   @@map("material_copies")
+}
+
+model Loan {
+  id           String     @id @default(uuid()) @db.Uuid
+  loanDate     DateTime   @db.Date
+  dueDate      DateTime   @db.Date
+  returnDate   DateTime?  @db.Date
+  status       LoanStatus
+  renewalCount Int        @default(0)
+  notes        String?    @db.Text
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  memberId String @db.Uuid
+  member   Member @relation(fields: [memberId], references: [userId], onDelete: Restrict)
+
+  copyId String       @db.Uuid
+  copy   MaterialCopy @relation(fields: [copyId], references: [id], onDelete: Restrict)
+
+  processedById String    @db.Uuid
+  processedBy   Librarian @relation("ProcessedLoans", fields: [processedById], references: [userId], onDelete: Restrict)
+
+  fines Fine[]
+
+  @@index([memberId])
+  @@index([copyId])
+  @@index([status])
+  @@index([loanDate])
+  @@index([dueDate])
+  @@index([processedById])
+  @@map("loans")
+}
+
+model Fine {
+  id         String     @id @default(uuid()) @db.Uuid
+  amount     Float      @db.DoublePrecision
+  paidAmount Float      @default(0) @db.DoublePrecision
+  status     FineStatus @default(PENDING)
+  reason     String     @db.VarChar(500)
+  notes      String?    @db.Text
+  paidDate   DateTime?  @db.Date
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  deletedAt  DateTime?
+
+  loanId String @db.Uuid
+  loan   Loan   @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  issuedById String    @db.Uuid
+  issuedBy   Librarian @relation("IssuedFines", fields: [issuedById], references: [userId], onDelete: Restrict)
+
+  @@index([loanId])
+  @@index([status])
+  @@index([issuedById])
+  @@index([createdAt])
+  @@map("fines")
+}
+
+model LoanConfiguration {
+  id                  String   @id @default(uuid()) @db.Uuid
+  defaultLoanDays     Int      @default(14)
+  maxActiveLoans      Int      @default(5)
+  maxRenewals         Int      @default(2)
+  gracePeriodDays     Int      @default(0)
+  dailyFineAmount     Float    @default(1.0) @db.DoublePrecision
+  allowLoansWithFines Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("loan_configuration")
+}
+
+model Reservation {
+  id              String            @id @default(uuid()) @db.Uuid
+  reservationDate DateTime          @default(now())
+  expirationDate  DateTime?         @db.Date
+  status          ReservationStatus @default(PENDING)
+  queuePosition   Int?
+  notes           String?           @db.Text
+  confirmedAt     DateTime?
+  pickedUpAt      DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  memberId String @db.Uuid
+  member   Member @relation(fields: [memberId], references: [userId], onDelete: Restrict)
+
+  copyId String?       @db.Uuid
+  copy   MaterialCopy? @relation(fields: [copyId], references: [id], onDelete: Restrict)
+
+  materialId String   @db.Uuid
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@index([memberId])
+  @@index([copyId])
+  @@index([materialId])
+  @@index([status])
+  @@index([reservationDate])
+  @@map("reservations")
 }

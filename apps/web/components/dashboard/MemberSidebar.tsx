@@ -10,22 +10,22 @@ export default function MemberSidebar() {
     },
     {
       href: '/dashboard/member/loans',
-      label: 'Mis Prestamos',
+      label: 'Mis préstamos',
       icon: BookOpen,
     },
     {
       href: '/dashboard/member/reservations',
-      label: 'Mis Reservas',
+      label: 'Mis reservas',
       icon: Calendar,
     },
     {
       href: '/dashboard/member/favorites',
-      label: 'Favoritos',
+      label: 'Mis favoritos',
       icon: Heart,
     },
     {
       href: '/catalog',
-      label: 'Catalogo',
+      label: 'Catálogo',
       icon: BookOpen,
     },
   ];

@@ -69,17 +69,17 @@ export default function MemberProfilePage() {
   };
 
   const userName = `${user?.firstName} ${user?.lastName}`;
-  const userInitials = userName
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase();
+  const userInitials = (() => {
+    const parts = userName.trim().split(' ');
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  })();
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Mi Perfil</h1>
+        <h1 className="text-3xl font-bold">Mi perfil</h1>
         <p className="text-muted-foreground mt-1">
           Gestiona tu información personal y configuración de cuenta
         </p>

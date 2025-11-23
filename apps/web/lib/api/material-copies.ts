@@ -32,10 +32,25 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
+export interface GetMaterialCopiesParams {
+  materialId?: string;
+  status?: string;
+}
+
+export interface GetMaterialCopiesResponse {
+  copies: MaterialCopyWithDetails[];
+  total?: number;
+}
+
 export const materialCopiesApi = {
-  async getAll(token: string, materialId?: string): Promise<MaterialCopyWithDetails[]> {
-    const url = materialId
-      ? `${API_URL}/material-copies?materialId=${materialId}`
+  async getAll(params: GetMaterialCopiesParams, token: string): Promise<GetMaterialCopiesResponse> {
+    const queryParams = new URLSearchParams();
+
+    if (params.materialId) queryParams.append('materialId', params.materialId);
+    if (params.status) queryParams.append('status', params.status);
+
+    const url = queryParams.toString()
+      ? `${API_URL}/material-copies?${queryParams.toString()}`
       : `${API_URL}/material-copies`;
 
     const response = await fetch(url, {
@@ -43,7 +58,8 @@ export const materialCopiesApi = {
         Authorization: `Bearer ${token}`,
       },
     });
-    return handleResponse<MaterialCopyWithDetails[]>(response);
+    const copies = await handleResponse<MaterialCopyWithDetails[]>(response);
+    return { copies, total: copies.length };
   },
 
   async getById(id: string, token: string): Promise<MaterialCopyWithDetails> {

@@ -197,13 +197,15 @@ export default function MaterialsPage() {
               <TableHead>Título</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Autor(es)</TableHead>
+              <TableHead>Año</TableHead>
+              <TableHead>Idioma</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8">
+                <TableCell colSpan={6} className="text-center py-8">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Loader2 className="h-12 w-12 opacity-50 animate-spin" />
                     <p>Cargando materiales...</p>
@@ -212,7 +214,7 @@ export default function MaterialsPage() {
               </TableRow>
             ) : filteredMaterials.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8">
+                <TableCell colSpan={6} className="text-center py-8">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <BookOpen className="h-12 w-12 opacity-50" />
                     <p>No se encontraron materiales</p>
@@ -248,6 +250,14 @@ export default function MaterialsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>{authorsText || '-'}</TableCell>
+                    <TableCell>
+                      {material.publishedDate
+                        ? new Date(material.publishedDate).getFullYear()
+                        : '-'}
+                    </TableCell>
+                    <TableCell className="capitalize">
+                      {material.language || '-'}
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

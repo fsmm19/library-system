@@ -37,3 +37,24 @@ export enum MaterialCopyStatus {
   UNDER_REPAIR = 'UNDER_REPAIR',
   REMOVED = 'REMOVED',
 }
+
+export enum LoanStatus {
+  ACTIVE = 'ACTIVE',
+  RETURNED = 'RETURNED',
+  OVERDUE = 'OVERDUE',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum FineStatus {
+  PENDING = 'PENDING',
+  PAID = 'PAID',
+  WAIVED = 'WAIVED',
+}
+
+export enum ReservationStatus {
+  PENDING = 'PENDING',
+  READY = 'READY',
+  PICKED_UP = 'PICKED_UP',
+  EXPIRED = 'EXPIRED',
+  CANCELLED = 'CANCELLED',
+}

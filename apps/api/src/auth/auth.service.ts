@@ -64,7 +64,9 @@ export class AuthService {
     );
 
     if (emailExists) {
-      throw new ConflictException('Email already registered');
+      throw new ConflictException(
+        'Ya existe una cuenta con este correo electrónico',
+      );
     }
 
     const { user, member } =
@@ -100,7 +102,9 @@ export class AuthService {
     );
 
     if (emailExists) {
-      throw new ConflictException('Email already registered');
+      throw new ConflictException(
+        'Ya existe una cuenta con este correo electrónico',
+      );
     }
 
     const { user, librarian } =

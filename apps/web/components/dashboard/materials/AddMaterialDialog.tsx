@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Combobox } from '@/components/ui/combobox';
 
 interface AddMaterialDialogProps {
   open: boolean;
@@ -82,6 +83,7 @@ export default function AddMaterialDialog({
   const [authorModes, setAuthorModes] = useState<('new' | 'existing')[]>([
     'new',
   ]);
+  const [selectedAuthorIds, setSelectedAuthorIds] = useState<string[]>(['']);
 
   const {
     register,
@@ -135,13 +137,27 @@ export default function AddMaterialDialog({
         language: data.language,
         publishedDate: data.publishedDate || undefined,
         description: data.description || undefined,
-        authors: data.authors.map((author) => ({
-          firstName: author.firstName,
-          middleName: author.middleName || undefined,
-          lastName: author.lastName,
-          nationality: author.nationality || undefined,
-          birthDate: author.birthDate || undefined,
-        })),
+        authors: data.authors.map((author, index) => {
+          // Si hay un ID seleccionado, es un autor existente
+          if (selectedAuthorIds[index] && authorModes[index] === 'existing') {
+            return {
+              id: selectedAuthorIds[index],
+              firstName: author.firstName,
+              middleName: author.middleName || undefined,
+              lastName: author.lastName,
+              nationality: author.nationality || undefined,
+              birthDate: author.birthDate || undefined,
+            };
+          }
+          // Si no, es un autor nuevo
+          return {
+            firstName: author.firstName,
+            middleName: author.middleName || undefined,
+            lastName: author.lastName,
+            nationality: author.nationality || undefined,
+            birthDate: author.birthDate || undefined,
+          };
+        }),
         book:
           data.book?.isbn13 || data.book?.edition || data.book?.numberOfPages
             ? {
@@ -166,10 +182,10 @@ export default function AddMaterialDialog({
       toast.success('Material agregado correctamente');
       reset();
       setAuthorModes(['new']);
+      setSelectedAuthorIds(['']);
       onOpenChange(false);
     } catch (error: any) {
       toast.error(error?.message || 'Error al agregar el material');
-      console.error(error);
     }
   };
 
@@ -202,6 +218,7 @@ export default function AddMaterialDialog({
         birthDate: '',
       });
       setAuthorModes([...authorModes, 'new']);
+      setSelectedAuthorIds([...selectedAuthorIds, '']);
     }
   };
 
@@ -209,6 +226,7 @@ export default function AddMaterialDialog({
     if (fields.length > 1) {
       remove(index);
       setAuthorModes(authorModes.filter((_, i) => i !== index));
+      setSelectedAuthorIds(selectedAuthorIds.filter((_, i) => i !== index));
     } else {
       toast.error('Debe haber al menos un autor');
     }
@@ -219,7 +237,11 @@ export default function AddMaterialDialog({
     newModes[index] = mode;
     setAuthorModes(newModes);
 
-    // Clear author fields when switching mode
+    // Clear selected author id and fields when switching mode
+    const newSelectedIds = [...selectedAuthorIds];
+    newSelectedIds[index] = '';
+    setSelectedAuthorIds(newSelectedIds);
+
     setValue(`authors.${index}.firstName`, '');
     setValue(`authors.${index}.middleName`, '');
     setValue(`authors.${index}.lastName`, '');
@@ -230,6 +252,10 @@ export default function AddMaterialDialog({
   const handleExistingAuthorSelect = (index: number, authorId: string) => {
     const author = existingAuthors.find((a) => a.id === authorId);
     if (author) {
+      const newSelectedIds = [...selectedAuthorIds];
+      newSelectedIds[index] = authorId;
+      setSelectedAuthorIds(newSelectedIds);
+
       setValue(`authors.${index}.firstName`, author.firstName);
       setValue(`authors.${index}.middleName`, author.middleName || '');
       setValue(`authors.${index}.lastName`, author.lastName);
@@ -260,6 +286,7 @@ export default function AddMaterialDialog({
   const handleClose = () => {
     setSelectedType(null);
     setAuthorModes(['new']);
+    setSelectedAuthorIds(['']);
     reset();
     onOpenChange(false);
   };
@@ -503,24 +530,22 @@ export default function AddMaterialDialog({
                             <Label htmlFor={`authors.${index}.select`}>
                               Autor <span className="text-destructive">*</span>
                             </Label>
-                            <Select
+                            <Combobox
+                              options={existingAuthors.map((author) => ({
+                                value: author.id,
+                                label: `${author.firstName} ${
+                                  author.middleName || ''
+                                } ${author.lastName}`.trim(),
+                              }))}
+                              value={selectedAuthorIds[index] || ''}
                               onValueChange={(value) =>
                                 handleExistingAuthorSelect(index, value)
                               }
+                              placeholder="Buscar y seleccionar autor..."
+                              searchPlaceholder="Buscar por nombre..."
+                              emptyText="No se encontró ningún autor"
                               disabled={isSubmitting || loadingAuthors}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Seleccionar autor" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {existingAuthors.map((author) => (
-                                  <SelectItem key={author.id} value={author.id}>
-                                    {author.firstName} {author.middleName || ''}{' '}
-                                    {author.lastName}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            />
                           </div>
                         ) : (
                           <>
@@ -665,7 +690,17 @@ export default function AddMaterialDialog({
                       placeholder="417"
                       disabled={isSubmitting}
                       {...register('book.numberOfPages', {
-                        valueAsNumber: true,
+                        setValueAs: (value) => {
+                          if (
+                            value === '' ||
+                            value === null ||
+                            value === undefined
+                          ) {
+                            return undefined;
+                          }
+                          const num = Number(value);
+                          return isNaN(num) ? undefined : num;
+                        },
                       })}
                     />
                     {errors.book?.numberOfPages && (

@@ -1,6 +1,7 @@
 import { Bell, LogOut, User, Settings, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,7 @@ export default function DashboardHeader({
 
   const handleLogout = () => {
     logout();
+    toast.success('Sesión cerrada correctamente');
   };
 
   const getBreadcrumbs = (): Array<{ label: string; href: string | null }> => {
@@ -57,7 +59,7 @@ export default function DashboardHeader({
     if (pathname.includes('/librarian/loans'))
       return [
         { label: 'Dashboard', href: '/dashboard/librarian' },
-        { label: 'Prestamos', href: null },
+        { label: 'Préstamos', href: null },
       ];
     if (pathname.includes('/librarian/reports'))
       return [
@@ -71,7 +73,7 @@ export default function DashboardHeader({
     if (pathname.includes('/member/loans'))
       return [
         { label: 'Dashboard', href: '/dashboard/member' },
-        { label: 'Mis Prestamos', href: null },
+        { label: 'Mis Préstamos', href: null },
       ];
     if (pathname.includes('/member/reservations'))
       return [
@@ -81,7 +83,7 @@ export default function DashboardHeader({
     if (pathname.includes('/member/favorites'))
       return [
         { label: 'Dashboard', href: '/dashboard/member' },
-        { label: 'Favoritos', href: null },
+        { label: 'Mis favoritos', href: null },
       ];
 
     // Common breadcrumbs
@@ -187,11 +189,13 @@ export default function DashboardHeader({
             <Button variant="ghost" className="gap-2">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  {userName
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .toUpperCase()}
+                  {(() => {
+                    const parts = userName.trim().split(' ');
+                    if (parts.length === 1) return parts[0][0].toUpperCase();
+                    return (
+                      parts[0][0] + parts[parts.length - 1][0]
+                    ).toUpperCase();
+                  })()}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden sm:flex sm:flex-col sm:items-start sm:gap-0">
