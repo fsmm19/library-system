@@ -1,7 +1,11 @@
 import { MaterialType, MaterialWithDetails } from '@library/types';
 import { BookOpen, Film, Newspaper } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
-import { getTypeIcon, getTypeLabel } from '@/lib/utils/catalog-utils';
+import {
+  getTypeIcon,
+  getTypeLabel,
+  getLanguageLabel,
+} from '@/lib/utils/catalog-utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -117,10 +121,13 @@ export function MaterialCard({ material }: MaterialCardProps) {
 
           <p className="text-sm text-muted-foreground mb-2">
             {formatAuthors(material.authors)}
+            {material.publishedDate && (
+              <span> - {new Date(material.publishedDate).getFullYear()}</span>
+            )}
           </p>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{material.language}</span>
+            <span>{getLanguageLabel(material.language)}</span>
             {material.book?.numberOfPages && (
               <span className="font-medium">
                 {material.book.numberOfPages} pags.

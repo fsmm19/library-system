@@ -44,6 +44,7 @@ export interface SearchFilters {
   query: string;
   types: string[];
   languages: string[];
+  categories: string[];
   availability?: 'all' | 'available' | 'unavailable';
   authorName?: string;
   yearFrom?: number;

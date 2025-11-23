@@ -11,7 +11,8 @@ import {
 import { Type } from 'class-transformer';
 import { CreateAuthorDto } from './create-author.dto';
 import { CreateBookDto } from './create-book.dto';
-import { MaterialType } from 'generated/prisma/enums';
+import { CreateCategoryDto } from './create-category.dto';
+import { MaterialType, Language } from 'generated/prisma/enums';
 
 export class CreateMaterialDto {
   @IsString()
@@ -32,10 +33,9 @@ export class CreateMaterialDto {
   @IsNotEmpty()
   type: MaterialType;
 
-  @IsString()
+  @IsEnum(Language)
   @IsNotEmpty()
-  @MaxLength(50)
-  language: string;
+  language: Language;
 
   @IsDateString()
   @IsOptional()
@@ -45,6 +45,12 @@ export class CreateMaterialDto {
   @ValidateNested({ each: true })
   @Type(() => CreateAuthorDto)
   authors: CreateAuthorDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateCategoryDto)
+  @IsOptional()
+  categories?: CreateCategoryDto[];
 
   @IsOptional()
   @ValidateNested()

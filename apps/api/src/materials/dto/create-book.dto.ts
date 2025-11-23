@@ -5,6 +5,7 @@ import {
   IsInt,
   Min,
   MaxLength,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateBookDto {
@@ -22,4 +23,8 @@ export class CreateBookDto {
   @Min(1)
   @IsOptional()
   numberOfPages?: number;
+
+  @IsUUID()
+  @IsOptional()
+  publisherId?: string;
 }

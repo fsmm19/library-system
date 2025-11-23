@@ -8,6 +8,8 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { getTypeLabel } from '@/lib/utils/catalog-utils';
 import { useState, useEffect } from 'react';
+import { materialsApi } from '@/lib/api/materials';
+import { Category } from '@library/types';
 
 interface FiltersSidebarProps {
   filters: SearchFilters;
@@ -22,15 +24,27 @@ export function FiltersSidebar({
   resultsCount,
   onClose,
 }: FiltersSidebarProps) {
+  const [categories, setCategories] = useState<Category[]>([]);
   const materialTypes = ['BOOK', 'DVD', 'MAGAZINE', 'OTHER'];
   const languages = [
-    'Español',
-    'Inglés',
-    'Francés',
-    'Alemán',
-    'Italiano',
-    'Otro',
+    { code: 'ES', label: 'Español' },
+    { code: 'EN', label: 'Inglés' },
+    { code: 'FR', label: 'Francés' },
+    { code: 'DE', label: 'Alemán' },
+    { code: 'OTHER', label: 'Otro' },
   ];
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await materialsApi.getAllCategories();
+        setCategories(data);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Estado local para los campos de año
   const [yearFromInput, setYearFromInput] = useState<string>(
@@ -47,17 +61,27 @@ export function FiltersSidebar({
   }, [filters.yearFrom, filters.yearTo]);
 
   const handleTypeToggle = (type: string) => {
-    const newTypes = filters.types.includes(type)
-      ? filters.types.filter((t) => t !== type)
-      : [...filters.types, type];
+    const currentTypes = filters.types || [];
+    const newTypes = currentTypes.includes(type)
+      ? currentTypes.filter((t) => t !== type)
+      : [...currentTypes, type];
     onFiltersChange({ ...filters, types: newTypes });
   };
 
   const handleLanguageToggle = (language: string) => {
-    const newLanguages = filters.languages.includes(language)
-      ? filters.languages.filter((l) => l !== language)
-      : [...filters.languages, language];
+    const currentLanguages = filters.languages || [];
+    const newLanguages = currentLanguages.includes(language)
+      ? currentLanguages.filter((l) => l !== language)
+      : [...currentLanguages, language];
     onFiltersChange({ ...filters, languages: newLanguages });
+  };
+
+  const handleCategoryToggle = (categoryId: string) => {
+    const currentCategories = filters.categories || [];
+    const newCategories = currentCategories.includes(categoryId)
+      ? currentCategories.filter((c) => c !== categoryId)
+      : [...currentCategories, categoryId];
+    onFiltersChange({ ...filters, categories: newCategories });
   };
 
   const handleAvailabilityChange = (
@@ -76,6 +100,7 @@ export function FiltersSidebar({
       query: filters.query,
       types: [],
       languages: [],
+      categories: [],
       availability: undefined,
       authorName: undefined,
       yearFrom: undefined,
@@ -84,8 +109,9 @@ export function FiltersSidebar({
   };
 
   const activeFiltersCount =
-    filters.types.length +
-    filters.languages.length +
+    (filters.types?.length || 0) +
+    (filters.languages?.length || 0) +
+    (filters.categories?.length || 0) +
     (filters.availability ? 1 : 0) +
     (filters.yearFrom ? 1 : 0) +
     (filters.yearTo ? 1 : 0);
@@ -120,7 +146,7 @@ export function FiltersSidebar({
               <div key={type} className="flex items-center space-x-2">
                 <Checkbox
                   id={`type-${type}`}
-                  checked={filters.types.includes(type)}
+                  checked={filters.types?.includes(type) || false}
                   onCheckedChange={() => handleTypeToggle(type)}
                 />
                 <Label
@@ -141,17 +167,17 @@ export function FiltersSidebar({
           <h3 className="font-medium text-sm">Idioma</h3>
           <div className="space-y-2">
             {languages.map((language) => (
-              <div key={language} className="flex items-center space-x-2">
+              <div key={language.code} className="flex items-center space-x-2">
                 <Checkbox
-                  id={`language-${language}`}
-                  checked={filters.languages.includes(language)}
-                  onCheckedChange={() => handleLanguageToggle(language)}
+                  id={`language-${language.code}`}
+                  checked={filters.languages?.includes(language.code) || false}
+                  onCheckedChange={() => handleLanguageToggle(language.code)}
                 />
                 <Label
-                  htmlFor={`language-${language}`}
+                  htmlFor={`language-${language.code}`}
                   className="text-sm font-normal cursor-pointer"
                 >
-                  {language}
+                  {language.label}
                 </Label>
               </div>
             ))}
@@ -159,6 +185,33 @@ export function FiltersSidebar({
         </div>
 
         <Separator />
+
+        {/* Categorías */}
+        {categories.length > 0 && (
+          <>
+            <div className="space-y-3">
+              <h3 className="font-medium text-sm">Categorías</h3>
+              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                {categories.map((category) => (
+                  <div key={category.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`category-${category.id}`}
+                      checked={filters.categories?.includes(category.id) || false}
+                      onCheckedChange={() => handleCategoryToggle(category.id)}
+                    />
+                    <Label
+                      htmlFor={`category-${category.id}`}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {category.name}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Separator />
+          </>
+        )}
 
         {/* Disponibilidad */}
         <div className="space-y-3">

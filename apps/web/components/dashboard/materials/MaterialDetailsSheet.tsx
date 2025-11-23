@@ -18,6 +18,7 @@ import {
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getLanguageLabel } from '@/lib/utils/catalog-utils';
 
 export type MaterialStatus = 'available' | 'loaned' | 'repair' | 'reserved';
 
@@ -26,8 +27,9 @@ export interface MaterialWithStatus {
   title: string;
   subtitle: string | null;
   type: string;
-  language: string;
+  language: 'EN' | 'ES' | 'FR' | 'DE' | 'OTHER';
   publishedDate?: string | null;
+  createdAt: string;
   status?: MaterialStatus;
   description?: string;
   authors?: Array<{
@@ -35,8 +37,12 @@ export interface MaterialWithStatus {
     firstName: string;
     middleName?: string | null;
     lastName: string;
-    nationality?: string | null;
+    countryOfOriginId?: string | null;
     birthDate?: string | null;
+  }>;
+  categories?: Array<{
+    id: string;
+    name: string;
   }>;
   book?: {
     id: string;
@@ -44,6 +50,7 @@ export interface MaterialWithStatus {
     edition: string | null;
     numberOfPages: number | null;
     materialId: string;
+    publisherId?: string | null;
   } | null;
 }
 
@@ -51,6 +58,7 @@ interface MaterialDetailsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   material: MaterialWithStatus | null;
+  onEdit?: (material: MaterialWithStatus) => void;
 }
 
 const statusLabels: Record<MaterialStatus, string> = {
@@ -81,6 +89,7 @@ export default function MaterialDetailsSheet({
   open,
   onOpenChange,
   material,
+  onEdit,
 }: MaterialDetailsSheetProps) {
   if (!material) return null;
 
@@ -95,7 +104,7 @@ export default function MaterialDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto px-6">
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
         <SheetHeader>
           <SheetTitle>Detalles del material</SheetTitle>
           <SheetDescription>
@@ -164,7 +173,7 @@ export default function MaterialDetailsSheet({
                 <div className="flex-1">
                   <p className="text-sm font-medium">Idioma</p>
                   <p className="text-sm text-muted-foreground">
-                    {material.language}
+                    {getLanguageLabel(material.language)}
                   </p>
                 </div>
               </div>
@@ -236,7 +245,7 @@ export default function MaterialDetailsSheet({
           <div className="space-y-2">
             <Button
               className="w-full"
-              onClick={() => toast.info('Edición disponible próximamente')}
+              onClick={() => onEdit && material && onEdit(material)}
             >
               <Edit className="mr-2 h-4 w-4" />
               Editar material

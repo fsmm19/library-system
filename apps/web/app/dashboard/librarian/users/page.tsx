@@ -43,6 +43,9 @@ import {
 } from '@/components/ui/pagination';
 import { User } from '@library/types';
 import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   Edit,
   Eye,
   Filter,
@@ -81,6 +84,8 @@ export default function UsersPage() {
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortColumn, setSortColumn] = useState<'name' | 'createdAt' | null>('createdAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     loadUsers();
@@ -128,10 +133,43 @@ export default function UsersPage() {
     return matchesSearch && matchesRole && matchesState;
   });
 
-  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+  // Sort users
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    if (!sortColumn) return 0;
+
+    let compareValue = 0;
+
+    switch (sortColumn) {
+      case 'name': {
+        const nameA = `${a.firstName} ${a.middleName || ''} ${a.lastName}`.toLowerCase();
+        const nameB = `${b.firstName} ${b.middleName || ''} ${b.lastName}`.toLowerCase();
+        compareValue = nameA.localeCompare(nameB);
+        break;
+      }
+      case 'createdAt': {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        compareValue = dateA - dateB;
+        break;
+      }
+    }
+
+    return sortDirection === 'asc' ? compareValue : -compareValue;
+  });
+
+  const handleSort = (column: 'name' | 'createdAt') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const totalPages = Math.ceil(sortedUsers.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+  const paginatedUsers = sortedUsers.slice(startIndex, endIndex);
 
   const handleCreateUser = async (data: UserFormData) => {
     if (!data.password) {
@@ -267,7 +305,7 @@ export default function UsersPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nombre o email..."
+              placeholder="Buscar por nombre o correo electrónico..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
@@ -303,11 +341,43 @@ export default function UsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Usuario</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('name')}
+                  className="flex items-center gap-1 hover:text-foreground transition-colors"
+                >
+                  Nombre completo
+                  {sortColumn === 'name' ? (
+                    sortDirection === 'asc' ? (
+                      <ArrowUp className="h-4 w-4" />
+                    ) : (
+                      <ArrowDown className="h-4 w-4" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-4 w-4 opacity-50" />
+                  )}
+                </button>
+              </TableHead>
+              <TableHead>Correo electrónico</TableHead>
               <TableHead>Rol</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>Fecha de registro</TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('createdAt')}
+                  className="flex items-center gap-1 hover:text-foreground transition-colors"
+                >
+                  Fecha de registro
+                  {sortColumn === 'createdAt' ? (
+                    sortDirection === 'asc' ? (
+                      <ArrowUp className="h-4 w-4" />
+                    ) : (
+                      <ArrowDown className="h-4 w-4" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-4 w-4 opacity-50" />
+                  )}
+                </button>
+              </TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -416,7 +486,7 @@ export default function UsersPage() {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Mostrando {paginatedUsers.length} de {filteredUsers.length} usuarios
+          Mostrando {paginatedUsers.length} de {sortedUsers.length} usuarios
         </p>
         {totalPages > 1 && (
           <Pagination>

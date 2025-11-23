@@ -4,6 +4,8 @@ import {
   IsEnum,
   IsDateString,
   IsUUID,
+  IsOptional,
+  MaxLength,
 } from 'class-validator';
 import {
   MaterialCopyCondition,
@@ -26,4 +28,19 @@ export class CreateMaterialCopyDto {
   @IsEnum(MaterialCopyStatus)
   @IsNotEmpty()
   status: MaterialCopyStatus;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  location?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  barcode?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  catalogCode?: string;
 }

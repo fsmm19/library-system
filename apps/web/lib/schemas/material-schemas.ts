@@ -6,7 +6,7 @@ export const existingAuthorSchema = z.object({
   firstName: z.string(),
   middleName: z.string().optional().nullable(),
   lastName: z.string(),
-  nationality: z.string().optional().nullable(),
+  countryOfOriginId: z.string().uuid().optional().nullable(),
   birthDate: z.string().optional().nullable(),
 });
 
@@ -14,20 +14,36 @@ export const existingAuthorSchema = z.object({
 export const newAuthorSchema = z.object({
   firstName: z
     .string()
-    .min(1, 'El nombre es requerido')
-    .max(100, 'El nombre no puede exceder 100 caracteres'),
+    .min(1, 'El primer nombre es requerido')
+    .min(2, 'El primer nombre debe tener al menos 2 caracteres')
+    .max(50, 'El primer nombre es demasiado largo')
+    .regex(
+      /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
+      'El nombre solo puede contener letras y espacios'
+    ),
   middleName: z
     .string()
-    .max(100, 'El segundo nombre no puede exceder 100 caracteres')
-    .optional(),
+    .max(50, 'El segundo nombre es demasiado largo')
+    .regex(
+      /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/,
+      'El nombre solo puede contener letras y espacios'
+    )
+    .refine(
+      (val) => !val || val.trim().length === 0 || val.trim().length >= 2,
+      { message: 'El segundo nombre debe tener al menos 2 caracteres' }
+    )
+    .optional()
+    .or(z.literal('')),
   lastName: z
     .string()
     .min(1, 'El apellido es requerido')
-    .max(100, 'El apellido no puede exceder 100 caracteres'),
-  nationality: z
-    .string()
-    .max(100, 'La nacionalidad no puede exceder 100 caracteres')
-    .optional(),
+    .min(2, 'El apellido debe tener al menos 2 caracteres')
+    .max(50, 'El apellido es demasiado largo')
+    .regex(
+      /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
+      'El apellido solo puede contener letras y espacios'
+    ),
+  countryOfOriginId: z.string().uuid('ID de país inválido').optional().or(z.literal('')),
   birthDate: z.string().optional(),
 });
 
@@ -51,6 +67,7 @@ export const bookSchema = z.object({
     .positive('El número de páginas debe ser positivo')
     .optional()
     .nullable(),
+  publisherId: z.string().uuid('ID de editorial inválido').optional().or(z.literal('')),
 });
 
 // Schema para agregar material tipo libro
@@ -63,10 +80,7 @@ export const addBookMaterialSchema = z.object({
     .string()
     .max(500, 'El subtítulo no puede exceder 500 caracteres')
     .optional(),
-  language: z
-    .string()
-    .min(1, 'El idioma es requerido')
-    .max(50, 'El idioma no puede exceder 50 caracteres'),
+  language: z.enum(['EN', 'ES', 'FR', 'DE', 'OTHER']),
   publishedDate: z
     .string()
     .refine((date) => !date || !isNaN(Date.parse(date)), {
@@ -77,9 +91,9 @@ export const addBookMaterialSchema = z.object({
     .string()
     .max(1000, 'La descripción no puede exceder 1000 caracteres')
     .optional(),
+  categories: z.array(z.string().uuid()).optional(),
   authors: z
     .array(newAuthorSchema)
-    .min(1, 'Debe agregar al menos un autor')
     .max(10, 'No puede agregar más de 10 autores'),
   book: bookSchema.optional(),
 });

@@ -8,6 +8,9 @@ export interface MaterialCopy {
   acquisitionDate: string;
   condition: MaterialCopyCondition;
   status: MaterialCopyStatus;
+  location: string | null;
+  barcode: string | null;
+  catalogCode: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -23,6 +26,9 @@ export interface CreateMaterialCopyData {
   acquisitionDate: string;
   condition: MaterialCopyCondition;
   status: MaterialCopyStatus;
+  location?: string;
+  barcode?: string;
+  catalogCode?: string;
 }
 
 export interface UpdateMaterialCopyData

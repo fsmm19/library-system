@@ -32,6 +32,15 @@ export class SearchMaterialsDto {
   })
   languages?: string[];
 
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    return Array.isArray(value) ? value : [value];
+  })
+  categories?: string[];
+
   @IsString()
   @IsOptional()
   authorName?: string;

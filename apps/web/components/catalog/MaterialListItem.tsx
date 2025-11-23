@@ -10,9 +10,14 @@ import {
   Film,
   MoreVertical,
   Newspaper,
+  XCircle,
 } from 'lucide-react';
 import { MaterialType, MaterialWithDetails } from '@library/types';
-import { getTypeIcon, getTypeLabel } from '@/lib/utils/catalog-utils';
+import {
+  getTypeIcon,
+  getTypeLabel,
+  getLanguageLabel,
+} from '@/lib/utils/catalog-utils';
 import { reservationsApi } from '@/lib/api/reservations';
 import { useAuth } from '@/hooks/useAuth';
 import { useReservations } from '@/contexts/ReservationsContext';
@@ -59,7 +64,7 @@ export function MaterialListItem({ material, index }: MaterialListItemProps) {
   const handleToggleFavorite = () => {
     if (!user) {
       toast.info('Inicia sesión para guardar favoritos', {
-        description: 'Te redirigiremos a la página de inicio de sesión',
+        description: 'Te redirigimos a la página de inicio de sesión',
       });
       router.push('/auth');
       return;
@@ -96,7 +101,7 @@ export function MaterialListItem({ material, index }: MaterialListItemProps) {
     // Verificar autenticación
     if (!user) {
       toast.info('Inicia sesión para solicitar materiales', {
-        description: 'Te redirigiremos a la página de inicio de sesión',
+        description: 'Te redirigimos a la página de inicio de sesión',
       });
       router.push('/auth');
       return;
@@ -217,18 +222,21 @@ export function MaterialListItem({ material, index }: MaterialListItemProps) {
                 <span className="text-muted-foreground">Por: </span>
                 <span className="text-foreground">
                   {formatAuthors(material.authors)}
+                  {material.publishedDate && (
+                    <span> - {new Date(material.publishedDate).getFullYear()}</span>
+                  )}
                 </span>
               </p>
             )}
 
             {/* Language and Pages */}
             <div className="flex gap-4 text-sm text-muted-foreground mb-3">
-              <span>Idioma: {material.language}</span>
+              <span>Idioma: {getLanguageLabel(material.language)}</span>
               {material.book?.numberOfPages && (
                 <span>{material.book.numberOfPages} páginas</span>
               )}
               {material.book?.isbn13 && (
-                <span>ISBN: {material.book.isbn13}</span>
+                <span>ISBN-13: {material.book.isbn13}</span>
               )}
             </div>
 
@@ -236,13 +244,17 @@ export function MaterialListItem({ material, index }: MaterialListItemProps) {
             {material.totalCopies !== undefined &&
               material.availableCopies !== undefined && (
                 <div className="flex items-center gap-2 mb-3">
-                  <Check
-                    className={`h-4 w-4 ${
-                      material.availableCopies > 0
-                        ? 'text-green-600'
-                        : 'text-muted-foreground'
-                    }`}
-                  />
+                  {material.totalCopies === 0 ? (
+                    <XCircle className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Check
+                      className={`h-4 w-4 ${
+                        material.availableCopies > 0
+                          ? 'text-green-600'
+                          : 'text-muted-foreground'
+                      }`}
+                    />
+                  )}
                   <span
                     className={`text-sm font-medium ${
                       material.availableCopies > 0
@@ -258,6 +270,8 @@ export function MaterialListItem({ material, index }: MaterialListItemProps) {
                             ? 'copia disponible'
                             : 'copias disponibles'
                         }`
+                      : material.totalCopies === 0
+                      ? 'No hay copias disponibles'
                       : `No hay copias disponibles (${material.totalCopies} ${
                           material.totalCopies === 1
                             ? 'copia total'

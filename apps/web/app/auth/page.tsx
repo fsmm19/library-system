@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { BookOpen } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -13,8 +14,16 @@ import {
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 
-export default function AuthPage() {
+function AuthContent() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'register' || tab === 'login') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
@@ -88,5 +97,20 @@ export default function AuthPage() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+        <div className="text-center">
+          <BookOpen className="h-12 w-12 animate-pulse mx-auto mb-4" />
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   );
 }

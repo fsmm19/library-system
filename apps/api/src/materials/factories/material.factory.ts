@@ -2,6 +2,7 @@ import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateMaterialDto } from '../dto/create-material.dto';
 import { CreateAuthorDto } from '../dto/create-author.dto';
+import { CreateCategoryDto } from '../dto/create-category.dto';
 import { MaterialType } from 'generated/prisma/enums';
 
 @Injectable()
@@ -14,6 +15,15 @@ export class MaterialFactory {
       const authorIds = await Promise.all(
         data.authors.map((authorDto) => this.findOrCreateAuthor(tx, authorDto)),
       );
+
+      // Find or create categories
+      const categoryIds = data.categories
+        ? await Promise.all(
+            data.categories.map((categoryDto) =>
+              this.findOrCreateCategory(tx, categoryDto),
+            ),
+          )
+        : [];
 
       // Create material
       const material = await tx.material.create({
@@ -29,9 +39,13 @@ export class MaterialFactory {
           authors: {
             connect: authorIds.map((id) => ({ id })),
           },
+          categories: {
+            connect: categoryIds.map((id) => ({ id })),
+          },
         },
         include: {
           authors: true,
+          categories: true,
         },
       });
 
@@ -48,7 +62,7 @@ export class MaterialFactory {
 
           if (existingBook) {
             throw new ConflictException(
-              `Ya existe un libro con el ISBN ${data.book.isbn13}: "${existingBook.material.title}"`,
+              `Ya existe un libro con el ISBN13 ${data.book.isbn13}: "${existingBook.material.title}"`,
             );
           }
         }
@@ -59,6 +73,7 @@ export class MaterialFactory {
             isbn13: data.book.isbn13,
             edition: data.book.edition,
             numberOfPages: data.book.numberOfPages,
+            publisherId: data.book.publisherId,
           },
         });
 
@@ -67,6 +82,44 @@ export class MaterialFactory {
 
       return { ...material, book: null };
     });
+  }
+
+  private async findOrCreateCategory(
+    tx: any,
+    categoryDto: CreateCategoryDto,
+  ): Promise<string> {
+    // If ID is provided, use existing category
+    if (categoryDto.id) {
+      const category = await tx.category.findUnique({
+        where: { id: categoryDto.id },
+      });
+
+      if (!category) {
+        throw new Error(`Category with ID ${categoryDto.id} not found`);
+      }
+
+      return categoryDto.id;
+    }
+
+    // Try to find existing category by name
+    const existingCategory = await tx.category.findFirst({
+      where: {
+        name: categoryDto.name,
+      },
+    });
+
+    if (existingCategory) {
+      return existingCategory.id;
+    }
+
+    // Create new category
+    const newCategory = await tx.category.create({
+      data: {
+        name: categoryDto.name,
+      },
+    });
+
+    return newCategory.id;
   }
 
   private async findOrCreateAuthor(
@@ -93,7 +146,7 @@ export class MaterialFactory {
         firstName: authorDto.firstName,
         middleName: authorDto.middleName || null,
         lastName: authorDto.lastName,
-        nationality: authorDto.nationality || null,
+        countryOfOriginId: authorDto.countryOfOriginId || null,
       },
     });
 
@@ -107,7 +160,7 @@ export class MaterialFactory {
         firstName: authorDto.firstName,
         middleName: authorDto.middleName,
         lastName: authorDto.lastName,
-        nationality: authorDto.nationality,
+        countryOfOriginId: authorDto.countryOfOriginId,
         birthDate: authorDto.birthDate ? new Date(authorDto.birthDate) : null,
       },
     });

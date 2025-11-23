@@ -86,6 +86,9 @@ export class MaterialCopiesService {
           : undefined,
         condition: updateMaterialCopyDto.condition,
         status: updateMaterialCopyDto.status,
+        location: updateMaterialCopyDto.location,
+        barcode: updateMaterialCopyDto.barcode,
+        catalogCode: updateMaterialCopyDto.catalogCode,
       },
       include: {
         material: {

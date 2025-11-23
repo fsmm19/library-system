@@ -46,7 +46,7 @@ export default function UserDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto px-6">
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
         <SheetHeader>
           <SheetTitle>Detalles del usuario</SheetTitle>
           <SheetDescription>

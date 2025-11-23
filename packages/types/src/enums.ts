@@ -58,3 +58,11 @@ export enum ReservationStatus {
   EXPIRED = 'EXPIRED',
   CANCELLED = 'CANCELLED',
 }
+
+export enum Language {
+  EN = 'EN',
+  ES = 'ES',
+  FR = 'FR',
+  DE = 'DE',
+  OTHER = 'OTHER',
+}

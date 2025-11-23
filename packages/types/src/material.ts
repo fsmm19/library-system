@@ -1,4 +1,5 @@
-import { MaterialType } from './enums';
+import { MaterialType, Language } from './enums';
+import { MaterialCopy } from './material-copy';
 
 // Material types
 export interface Material {
@@ -7,11 +8,27 @@ export interface Material {
   subtitle: string | null;
   description: string | null;
   type: MaterialType;
-  language: string;
+  language: Language;
   publishedDate: string | null;
+  maxLoanDays: number | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+}
+
+export interface Country {
+  id: string;
+  name: string;
+}
+
+export interface Publisher {
+  id: string;
+  name: string;
 }
 
 export interface Author {
@@ -19,7 +36,8 @@ export interface Author {
   firstName: string;
   middleName: string | null;
   lastName: string;
-  nationality: string | null;
+  countryOfOriginId: string | null;
+  countryOfOrigin?: Country | null;
   birthDate: string | null;
 }
 
@@ -29,23 +47,43 @@ export interface Book {
   edition: string | null;
   numberOfPages: number | null;
   materialId: string;
+  publisherId: string | null;
+  publisher?: Publisher | null;
 }
 
 export interface MaterialWithDetails extends Material {
   authors: Author[];
+  categories: Category[];
   book: Book | null;
+  copies: MaterialCopy[];
   thumbnail?: string;
   totalCopies?: number;
   availableCopies?: number;
+  totalLoans?: number;
 }
 
 // API Request/Response types
+export interface CreateCategoryData {
+  id?: string;
+  name?: string;
+}
+
+export interface CreateCountryData {
+  id?: string;
+  name: string;
+}
+
+export interface CreatePublisherData {
+  id?: string;
+  name: string;
+}
+
 export interface CreateAuthorData {
   id?: string;
   firstName: string;
   middleName?: string;
   lastName: string;
-  nationality?: string;
+  countryOfOriginId?: string;
   birthDate?: string;
 }
 
@@ -53,6 +91,7 @@ export interface CreateBookData {
   isbn13?: string;
   edition?: string;
   numberOfPages?: number;
+  publisherId?: string;
 }
 
 export interface CreateMaterialData {
@@ -60,9 +99,10 @@ export interface CreateMaterialData {
   subtitle?: string;
   description?: string;
   type: MaterialType;
-  language: string;
+  language: Language;
   publishedDate?: string;
   authors: CreateAuthorData[];
+  categories?: CreateCategoryData[];
   book?: CreateBookData;
 }
 
@@ -71,7 +111,8 @@ export interface UpdateMaterialData extends Partial<CreateMaterialData> {}
 export interface SearchMaterialsParams {
   query?: string;
   types?: MaterialType[];
-  languages?: string[];
+  languages?: Language[];
+  categories?: string[];
   authorName?: string;
   yearFrom?: number;
   yearTo?: number;

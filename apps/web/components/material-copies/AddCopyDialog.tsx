@@ -41,6 +41,18 @@ const addCopySchema = z.object({
   acquisitionDate: z.string().min(1, 'La fecha de adquisición es requerida'),
   condition: z.nativeEnum(MaterialCopyCondition),
   status: z.nativeEnum(MaterialCopyStatus),
+  location: z
+    .string()
+    .max(100, 'La ubicación no puede exceder 100 caracteres')
+    .optional(),
+  barcode: z
+    .string()
+    .max(255, 'El código de barras no puede exceder 255 caracteres')
+    .optional(),
+  catalogCode: z
+    .string()
+    .max(255, 'El código de catálogo no puede exceder 255 caracteres')
+    .optional(),
 });
 
 type AddCopyFormData = z.infer<typeof addCopySchema>;
@@ -92,6 +104,9 @@ export default function AddCopyDialog({
       acquisitionDate: new Date().toISOString().split('T')[0],
       condition: MaterialCopyCondition.GOOD,
       status: MaterialCopyStatus.AVAILABLE,
+      location: '',
+      barcode: '',
+      catalogCode: '',
     },
   });
 
@@ -251,7 +266,7 @@ export default function AddCopyDialog({
                     onValueChange={field.onChange}
                     disabled={isSubmitting}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Seleccionar condición" />
                     </SelectTrigger>
                     <SelectContent>
@@ -286,7 +301,7 @@ export default function AddCopyDialog({
                     onValueChange={field.onChange}
                     disabled={isSubmitting}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Seleccionar estado" />
                     </SelectTrigger>
                     <SelectContent>
@@ -307,6 +322,53 @@ export default function AddCopyDialog({
               {errors.status && (
                 <p className="text-sm text-destructive">
                   {errors.status.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="location">Ubicación</Label>
+            <Input
+              id="location"
+              placeholder="Estante A1, Nivel 1"
+              disabled={isSubmitting}
+              {...register('location')}
+            />
+            {errors.location && (
+              <p className="text-sm text-destructive">
+                {errors.location.message}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="barcode">Código de barras</Label>
+              <Input
+                id="barcode"
+                placeholder="123456789"
+                disabled={isSubmitting}
+                {...register('barcode')}
+              />
+              {errors.barcode && (
+                <p className="text-sm text-destructive">
+                  {errors.barcode.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="catalogCode">Código de catálogo</Label>
+              <Input
+                id="catalogCode"
+                placeholder="LIB-001"
+                disabled={isSubmitting}
+                {...register('catalogCode')}
+              />
+              {errors.catalogCode && (
+                <p className="text-sm text-destructive">
+                  {errors.catalogCode.message}
                 </p>
               )}
             </div>

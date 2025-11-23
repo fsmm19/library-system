@@ -37,6 +37,10 @@ export const registerMemberSchema = z
         /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/,
         'El nombre solo puede contener letras y espacios'
       )
+      .refine(
+        (val) => !val || val.trim().length === 0 || val.trim().length >= 2,
+        { message: 'El segundo nombre debe tener al menos 2 caracteres' }
+      )
       .optional()
       .or(z.literal('')),
     lastName: z

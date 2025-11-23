@@ -5,6 +5,9 @@ import {
   SearchMaterialsParams,
   SearchMaterialsResponse,
   Author,
+  Category,
+  Country,
+  Publisher,
 } from '@library/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -60,6 +63,9 @@ export const materialsApi = {
     }
     if (params.languages && params.languages.length > 0) {
       params.languages.forEach((l) => queryParams.append('languages', l));
+    }
+    if (params.categories && params.categories.length > 0) {
+      params.categories.forEach((c) => queryParams.append('categories', c));
     }
     if (params.authorName) queryParams.append('authorName', params.authorName);
     if (params.yearFrom)
@@ -144,5 +150,158 @@ export const materialsApi = {
       },
     });
     return handleResponse<Author[]>(response);
+  },
+
+  async getAllCategories(token?: string): Promise<Category[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_URL}/materials/categories`, {
+      headers,
+    });
+    return handleResponse<Category[]>(response);
+  },
+
+  async getAllCountries(token: string): Promise<Country[]> {
+    const response = await fetch(`${API_URL}/materials/countries`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handleResponse<Country[]>(response);
+  },
+
+  async getAllPublishers(token: string): Promise<Publisher[]> {
+    const response = await fetch(`${API_URL}/materials/publishers`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handleResponse<Publisher[]>(response);
+  },
+
+  // Categories CRUD
+  async createCategory(
+    data: { name: string },
+    token: string
+  ): Promise<Category> {
+    const response = await fetch(`${API_URL}/materials/categories`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<Category>(response);
+  },
+
+  async updateCategory(
+    id: string,
+    data: { name: string },
+    token: string
+  ): Promise<Category> {
+    const response = await fetch(`${API_URL}/materials/categories/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<Category>(response);
+  },
+
+  async deleteCategory(id: string, token: string): Promise<Category> {
+    const response = await fetch(`${API_URL}/materials/categories/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handleResponse<Category>(response);
+  },
+
+  // Countries CRUD
+  async createCountry(data: { name: string }, token: string): Promise<Country> {
+    const response = await fetch(`${API_URL}/materials/countries`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<Country>(response);
+  },
+
+  async updateCountry(
+    id: string,
+    data: { name: string },
+    token: string
+  ): Promise<Country> {
+    const response = await fetch(`${API_URL}/materials/countries/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<Country>(response);
+  },
+
+  async deleteCountry(id: string, token: string): Promise<Country> {
+    const response = await fetch(`${API_URL}/materials/countries/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handleResponse<Country>(response);
+  },
+
+  // Publishers CRUD
+  async createPublisher(
+    data: { name: string },
+    token: string
+  ): Promise<Publisher> {
+    const response = await fetch(`${API_URL}/materials/publishers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<Publisher>(response);
+  },
+
+  async updatePublisher(
+    id: string,
+    data: { name: string },
+    token: string
+  ): Promise<Publisher> {
+    const response = await fetch(`${API_URL}/materials/publishers/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<Publisher>(response);
+  },
+
+  async deletePublisher(id: string, token: string): Promise<Publisher> {
+    const response = await fetch(`${API_URL}/materials/publishers/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handleResponse<Publisher>(response);
   },
 };

@@ -32,10 +32,9 @@ export class CreateAuthorDto {
   lastName: string;
 
   @ValidateIf((o) => !o.id)
-  @IsString()
+  @IsUUID()
   @IsOptional()
-  @MaxLength(100)
-  nationality?: string;
+  countryOfOriginId?: string;
 
   @ValidateIf((o) => !o.id)
   @IsDateString()

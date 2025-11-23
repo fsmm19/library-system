@@ -25,6 +25,9 @@ export class MaterialCopyFactory {
         acquisitionDate: new Date(data.acquisitionDate),
         condition: data.condition,
         status: data.status,
+        location: data.location,
+        barcode: data.barcode,
+        catalogCode: data.catalogCode,
       },
       include: {
         material: {

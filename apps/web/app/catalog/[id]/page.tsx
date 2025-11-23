@@ -16,13 +16,37 @@ import {
   Share2,
   Tag,
   BookMarked,
+  MapPin,
+  Package,
+  Barcode,
+  LogIn,
+  ChartBarBig,
+  BookCheck,
+  FileDigit,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getTypeIcon, getTypeLabel } from '@/lib/utils/catalog-utils';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  getTypeIcon,
+  getTypeLabel,
+  getLanguageLabel,
+  getCopyStatusLabel,
+  getCopyConditionLabel,
+  getCopyStatusColor,
+} from '@/lib/utils/catalog-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReservations } from '@/contexts/ReservationsContext';
 
@@ -301,7 +325,9 @@ export default function MaterialDetailPage() {
                         }
                         className="text-sm"
                       >
-                        {material.availableCopies === 0
+                        {material.totalCopies === 0
+                          ? 'Sin copias'
+                          : material.availableCopies === 0
                           ? 'No disponible'
                           : `${material.availableCopies} de ${material.totalCopies} disponibles`}
                       </Badge>
@@ -309,7 +335,9 @@ export default function MaterialDetailPage() {
                 </div>
 
                 {material.availableCopies !== undefined &&
-                  material.availableCopies === 0 && (
+                  material.availableCopies === 0 &&
+                  material.totalCopies !== undefined &&
+                  material.totalCopies > 0 && (
                     <div className="bg-muted p-3 rounded-lg text-sm text-muted-foreground mb-3">
                       <p className="font-medium mb-1">
                         No hay copias disponibles
@@ -376,7 +404,7 @@ export default function MaterialDetailPage() {
                       variant="secondary"
                       onClick={() => router.push('/auth')}
                     >
-                      Iniciar sesión para solicitar
+                      Iniciar sesión para reservar
                     </Button>
                   )}
                 </div>
@@ -400,13 +428,15 @@ export default function MaterialDetailPage() {
                 </p>
               )}
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  {new Date(material.createdAt).getFullYear()}
-                </span>
+                {material.publishedDate && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {new Date(material.publishedDate).getFullYear()}
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
                   <Languages className="h-4 w-4" />
-                  {material.language}
+                  {getLanguageLabel(material.language)}
                 </span>
               </div>
             </div>
@@ -432,31 +462,59 @@ export default function MaterialDetailPage() {
               </CardHeader>
               <CardContent>
                 <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                      <Tag className="h-4 w-4" />
-                      Tipo
-                    </dt>
-                    <dd className="mt-1 text-sm">
-                      {getTypeLabel(material.type)}
-                    </dd>
-                  </div>
+                  {material.publishedDate && (
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Fecha de publicación
+                      </dt>
+                      <dd className="mt-1 text-sm">
+                        {formatDate(material.publishedDate)}
+                      </dd>
+                    </div>
+                  )}
 
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                      <Languages className="h-4 w-4" />
-                      Idioma
-                    </dt>
-                    <dd className="mt-1 text-sm">{material.language}</dd>
-                  </div>
+                  {material.categories && material.categories.length > 0 && (
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <ChartBarBig className="h-4 w-4" />
+                        {material.categories.length > 1
+                          ? 'Categorías'
+                          : 'Categoría'}
+                      </dt>
+                      <dd className="mt-1 text-sm flex flex-wrap gap-1">
+                        {material.categories.map((category) => (
+                          <Badge
+                            key={category.id}
+                            variant="secondary"
+                            className="text-xs"
+                          >
+                            {category.name}
+                          </Badge>
+                        ))}
+                      </dd>
+                    </div>
+                  )}
 
                   {material.book?.isbn13 && (
                     <div>
                       <dt className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                        <BookOpen className="h-4 w-4" />
+                        <Barcode className="h-4 w-4" />
                         ISBN-13
                       </dt>
                       <dd className="mt-1 text-sm">{material.book.isbn13}</dd>
+                    </div>
+                  )}
+
+                  {material.book?.numberOfPages && (
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <FileDigit className="h-4 w-4" />
+                        Número de páginas
+                      </dt>
+                      <dd className="mt-1 text-sm">
+                        {material.book.numberOfPages}
+                      </dd>
                     </div>
                   )}
 
@@ -470,27 +528,15 @@ export default function MaterialDetailPage() {
                     </div>
                   )}
 
-                  {material.book?.numberOfPages && (
+                  {material.book?.publisher && (
                     <div>
                       <dt className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                        <BookOpen className="h-4 w-4" />
-                        Numero de paginas
+                        <BookCheck className="h-4 w-4" />
+                        Editorial
                       </dt>
-                      <dd className="mt-1 text-sm">
-                        {material.book.numberOfPages}
-                      </dd>
+                      <dd className="mt-1">{material.book.publisher.name}</dd>
                     </div>
                   )}
-
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Fecha de registro
-                    </dt>
-                    <dd className="mt-1 text-sm">
-                      {formatDate(material.createdAt)}
-                    </dd>
-                  </div>
                 </dl>
               </CardContent>
             </Card>
@@ -513,14 +559,16 @@ export default function MaterialDetailPage() {
                           {author.middleName && `${author.middleName} `}
                           {author.lastName}
                         </p>
-                        <div className="flex gap-4 text-sm text-muted-foreground mt-1">
-                          {author.nationality && (
-                            <span>Nacionalidad: {author.nationality}</span>
-                          )}
+                        <div className="flex flex-col gap-1 text-sm text-muted-foreground mt-1">
                           {author.birthDate && (
                             <span>
                               Fecha de nacimiento:{' '}
                               {formatDate(author.birthDate)}
+                            </span>
+                          )}
+                          {author.countryOfOrigin && (
+                            <span>
+                              País de origen: {author.countryOfOrigin.name}
                             </span>
                           )}
                         </div>
@@ -530,6 +578,156 @@ export default function MaterialDetailPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Availability and Actions */}
+            <Card
+              className={
+                material.availableCopies !== undefined &&
+                material.availableCopies > 0
+                  ? 'border-success/50 bg-success/5'
+                  : 'border-destructive/50 bg-destructive/5'
+              }
+            >
+              <CardHeader>
+                <CardTitle>Disponibilidad y acciones</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-lg">
+                      {material.availableCopies !== undefined &&
+                      material.availableCopies > 0
+                        ? '✅ Disponible'
+                        : '🔒 No disponible'}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {material.availableCopies ?? 0} de{' '}
+                      {material.totalCopies ?? 0} copias disponibles
+                    </p>
+                  </div>
+                </div>
+
+                {material.copies && material.copies.length > 0 && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">
+                        Copias individuales:
+                      </p>
+                      <div className="rounded-md border overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>ID</TableHead>
+                              <TableHead>Ubicación</TableHead>
+                              <TableHead>Condición</TableHead>
+                              <TableHead>Estado</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {material.copies.map((copy) => (
+                              <TableRow key={copy.id}>
+                                <TableCell className="font-mono text-xs">
+                                  {copy.catalogCode || copy.id.slice(0, 8)}
+                                </TableCell>
+                                <TableCell className="text-sm">
+                                  {copy.location || 'No especificada'}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="text-xs">
+                                    {getCopyConditionLabel(copy.condition)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-xs ${getCopyStatusColor(
+                                      copy.status
+                                    )}`}
+                                  >
+                                    {getCopyStatusLabel(copy.status)}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {!user && (
+                  <>
+                    <Separator />
+                    <Card className="bg-muted/50 border-dashed">
+                      <CardContent className="pt-6 text-center space-y-3">
+                        <LogIn className="h-8 w-8 text-primary mx-auto" />
+                        <div>
+                          <p className="font-medium mb-1">
+                            Necesitas una cuenta para reservar un material
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Inicia sesión o regístrate para acceder a todos los
+                            servicios
+                          </p>
+                        </div>
+                        <div className="flex gap-2 justify-center">
+                          <Button size="lg" asChild>
+                            <Link href="/auth?tab=login">
+                              <LogIn className="h-4 w-4 mr-2" />
+                              Iniciar sesión
+                            </Link>
+                          </Button>
+                          <Button variant="outline" size="lg" asChild>
+                            <Link href="/auth?tab=register">Registrarse</Link>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Historial */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Historial</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="space-y-4">
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      Fecha de adquisición
+                    </dt>
+                    <dd className="mt-1">
+                      {material.copies && material.copies.length > 0
+                        ? formatDate(material.copies[0].acquisitionDate)
+                        : 'No especificada'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      Última actualización
+                    </dt>
+                    <dd className="mt-1">{formatDate(material.updatedAt)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      Número de veces prestado
+                    </dt>
+                    <dd className="mt-1">
+                      {material.totalLoans !== undefined
+                        ? `${material.totalLoans} ${
+                            material.totalLoans === 1 ? 'vez' : 'veces'
+                          }`
+                        : 'No disponible'}
+                    </dd>
+                  </div>
+                </dl>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

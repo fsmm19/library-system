@@ -5,6 +5,7 @@ import {
   MaterialWithDetails,
   SearchMaterialsParams,
   MaterialType,
+  Language,
 } from '@library/types';
 import { materialsApi } from '@/lib/api/materials';
 import { SearchFilters } from '@/types/catalog';
@@ -68,6 +69,7 @@ export default function CatalogPage() {
     query: '',
     types: [],
     languages: [],
+    categories: [],
     availability: undefined,
     authorName: undefined,
     yearFrom: undefined,
@@ -101,7 +103,8 @@ export default function CatalogPage() {
         const searchParams: SearchMaterialsParams = {
           query: filters.query || searchQuery,
           types: filters.types as MaterialType[],
-          languages: filters.languages,
+          languages: filters.languages as Language[],
+          categories: filters.categories,
           authorName: filters.authorName,
           yearFrom:
             filters.yearFrom !== undefined &&
@@ -124,15 +127,26 @@ export default function CatalogPage() {
 
         const response = await materialsApi.search(searchParams, undefined);
 
-        // Aplicar filtro de disponibilidad del lado del cliente
+        // Aplicar filtros del lado del cliente
         let filteredMaterials = response.materials;
+
+        // Filtro de disponibilidad
         if (filters.availability === 'available') {
-          filteredMaterials = response.materials.filter(
+          filteredMaterials = filteredMaterials.filter(
             (m) => m.availableCopies && m.availableCopies > 0
           );
         } else if (filters.availability === 'unavailable') {
-          filteredMaterials = response.materials.filter(
+          filteredMaterials = filteredMaterials.filter(
             (m) => !m.availableCopies || m.availableCopies === 0
+          );
+        }
+
+        // Filtro de categorías
+        if (filters.categories && filters.categories.length > 0) {
+          filteredMaterials = filteredMaterials.filter((material) =>
+            material.categories?.some((category) =>
+              filters.categories?.includes(category.id)
+            )
           );
         }
 
@@ -151,7 +165,6 @@ export default function CatalogPage() {
 
   const handleSearch = () => {
     if (searchQuery.trim() === '') {
-      setFilters({ ...filters, query: '' });
       return;
     }
     setFilters({ ...filters, query: searchQuery });
@@ -163,6 +176,7 @@ export default function CatalogPage() {
       query: '',
       types: [],
       languages: [],
+      categories: [],
       availability: undefined,
       authorName: undefined,
       yearFrom: undefined,

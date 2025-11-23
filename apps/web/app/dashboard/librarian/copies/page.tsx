@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { materialCopiesApi } from '@/lib/api/material-copies';
 import AddCopyDialog from '@/components/material-copies/AddCopyDialog';
+import MaterialCopyDetailsSheet from '@/components/material-copies/MaterialCopyDetailsSheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -43,6 +44,7 @@ import {
   Loader2,
   Package,
   BookOpen,
+  Eye,
 } from 'lucide-react';
 import {
   MaterialCopyWithDetails,
@@ -104,6 +106,9 @@ export default function CopiesPage() {
   const [copyToDelete, setCopyToDelete] =
     useState<MaterialCopyWithDetails | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedCopy, setSelectedCopy] =
+    useState<MaterialCopyWithDetails | null>(null);
 
   useEffect(() => {
     loadCopies();
@@ -164,6 +169,11 @@ export default function CopiesPage() {
 
   const handleAddCopy = (newCopy: MaterialCopyWithDetails) => {
     setCopies([newCopy, ...copies]);
+  };
+
+  const openDetails = (copy: MaterialCopyWithDetails) => {
+    setSelectedCopy(copy);
+    setIsDetailsOpen(true);
   };
 
   const handleDeleteClick = (copy: MaterialCopyWithDetails) => {
@@ -402,6 +412,19 @@ export default function CopiesPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => openDetails(copy)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Ver detalles
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            toast.info('Edición disponible próximamente')
+                          }
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() =>
                             handleUpdateStatus(
@@ -438,13 +461,24 @@ export default function CopiesPage() {
         onAdd={handleAddCopy}
       />
 
+      {/* Details Sheet */}
+      <MaterialCopyDetailsSheet
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+        copy={selectedCopy}
+      />
+
       {/* Delete Dialog */}
       <ConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleDeleteConfirm}
         title="Eliminar copia"
-        description={`¿Está seguro de que desea eliminar esta copia del material "${copyToDelete?.material.title}"? Esta acción no se puede deshacer.`}
+        description={
+          copyToDelete
+            ? `¿Está seguro de que desea eliminar esta copia del material '${copyToDelete.material.title}'? Esta acción no se puede deshacer.`
+            : ''
+        }
         confirmText="Eliminar"
       />
     </div>

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { MaterialFactory } from './factories/material.factory';
 import { CreateMaterialDto } from './dto/create-material.dto';
@@ -22,6 +26,7 @@ export class MaterialsService {
       query,
       types,
       languages,
+      categories,
       authorName,
       yearFrom,
       yearTo,
@@ -30,7 +35,9 @@ export class MaterialsService {
       pageSize = 12,
     } = searchDto;
 
-    const where: any = {};
+    const where: any = {
+      deletedAt: null, // Exclude soft-deleted materials
+    };
 
     // Text search
     if (query) {
@@ -65,6 +72,15 @@ export class MaterialsService {
     // Language filter
     if (languages && languages.length > 0) {
       where.language = { in: languages };
+    }
+
+    // Categories filter
+    if (categories && categories.length > 0) {
+      where.categories = {
+        some: {
+          id: { in: categories },
+        },
+      };
     }
 
     // Author name filter
@@ -124,8 +140,12 @@ export class MaterialsService {
       take: pageSize,
       include: {
         authors: true,
+        categories: true,
         book: true,
         copies: {
+          where: {
+            deletedAt: null,
+          },
           select: {
             status: true,
           },
@@ -162,17 +182,29 @@ export class MaterialsService {
     const material = await this.prisma.material.findUnique({
       where: { id },
       include: {
-        authors: true,
-        book: true,
+        authors: {
+          include: {
+            countryOfOrigin: true,
+          },
+        },
+        categories: true,
+        book: {
+          include: {
+            publisher: true,
+          },
+        },
         copies: {
-          select: {
-            status: true,
+          where: {
+            deletedAt: null,
+          },
+          orderBy: {
+            acquisitionDate: 'desc',
           },
         },
       },
     });
 
-    if (!material) {
+    if (!material || material.deletedAt) {
       throw new NotFoundException(`Material with ID ${id} not found`);
     }
 
@@ -182,12 +214,20 @@ export class MaterialsService {
       (copy) => copy.status === 'AVAILABLE',
     ).length;
 
-    const { copies, ...materialWithoutCopies } = material;
+    // Count total loans for this material (across all copies)
+    const totalLoans = await this.prisma.loan.count({
+      where: {
+        copy: {
+          materialId: id,
+        },
+      },
+    });
 
     return {
-      ...materialWithoutCopies,
+      ...material,
       totalCopies,
       availableCopies,
+      totalLoans,
     };
   }
 
@@ -207,6 +247,7 @@ export class MaterialsService {
         },
         include: {
           authors: true,
+          categories: true,
           book: true,
         },
       });
@@ -277,10 +318,29 @@ export class MaterialsService {
     // Verify material exists
     await this.findOne(id);
 
-    return this.prisma.material.delete({
+    // Check if material has any copies
+    const copiesCount = await this.prisma.materialCopy.count({
+      where: {
+        materialId: id,
+        deletedAt: null, // Only count non-deleted copies
+      },
+    });
+
+    if (copiesCount > 0) {
+      throw new ConflictException(
+        `No se puede eliminar el material porque tiene ${copiesCount} copia${copiesCount > 1 ? 's' : ''} física${copiesCount > 1 ? 's' : ''} asociada${copiesCount > 1 ? 's' : ''}`,
+      );
+    }
+
+    // Soft delete: set deletedAt timestamp instead of hard delete
+    return this.prisma.material.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+      },
       include: {
         authors: true,
+        categories: true,
         book: true,
       },
     });
@@ -289,6 +349,159 @@ export class MaterialsService {
   async findAllAuthors() {
     return this.prisma.author.findMany({
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+  }
+
+  async findAllCategories() {
+    return this.prisma.category.findMany({
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async findAllCountries() {
+    return this.prisma.country.findMany({
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async findAllPublishers() {
+    return this.prisma.publisher.findMany({
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  // Categories CRUD
+  async createCategory(data: { name: string }) {
+    return this.prisma.category.create({
+      data: { name: data.name },
+    });
+  }
+
+  async updateCategory(id: string, data: { name?: string }) {
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+    });
+
+    if (!category) {
+      throw new NotFoundException(`Category with ID ${id} not found`);
+    }
+
+    return this.prisma.category.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async removeCategory(id: string) {
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+      include: {
+        materials: true,
+      },
+    });
+
+    if (!category) {
+      throw new NotFoundException(`Category with ID ${id} not found`);
+    }
+
+    if (category.materials.length > 0) {
+      throw new ConflictException(
+        `No se puede eliminar la categoría porque tiene ${category.materials.length} material(es) asociado(s)`,
+      );
+    }
+
+    return this.prisma.category.delete({
+      where: { id },
+    });
+  }
+
+  // Countries CRUD
+  async createCountry(data: { name: string }) {
+    return this.prisma.country.create({
+      data: { name: data.name },
+    });
+  }
+
+  async updateCountry(id: string, data: { name?: string }) {
+    const country = await this.prisma.country.findUnique({
+      where: { id },
+    });
+
+    if (!country) {
+      throw new NotFoundException(`Country with ID ${id} not found`);
+    }
+
+    return this.prisma.country.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async removeCountry(id: string) {
+    const country = await this.prisma.country.findUnique({
+      where: { id },
+      include: {
+        authors: true,
+      },
+    });
+
+    if (!country) {
+      throw new NotFoundException(`Country with ID ${id} not found`);
+    }
+
+    if (country.authors.length > 0) {
+      throw new ConflictException(
+        `No se puede eliminar el país porque tiene ${country.authors.length} autor(es) asociado(s)`,
+      );
+    }
+
+    return this.prisma.country.delete({
+      where: { id },
+    });
+  }
+
+  // Publishers CRUD
+  async createPublisher(data: { name: string }) {
+    return this.prisma.publisher.create({
+      data: { name: data.name },
+    });
+  }
+
+  async updatePublisher(id: string, data: { name?: string }) {
+    const publisher = await this.prisma.publisher.findUnique({
+      where: { id },
+    });
+
+    if (!publisher) {
+      throw new NotFoundException(`Publisher with ID ${id} not found`);
+    }
+
+    return this.prisma.publisher.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async removePublisher(id: string) {
+    const publisher = await this.prisma.publisher.findUnique({
+      where: { id },
+      include: {
+        books: true,
+      },
+    });
+
+    if (!publisher) {
+      throw new NotFoundException(`Publisher with ID ${id} not found`);
+    }
+
+    if (publisher.books.length > 0) {
+      throw new ConflictException(
+        `No se puede eliminar la editorial porque tiene ${publisher.books.length} libro(s) asociado(s)`,
+      );
+    }
+
+    return this.prisma.publisher.delete({
+      where: { id },
     });
   }
 }

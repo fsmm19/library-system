@@ -337,11 +337,6 @@ export default function LibrarianDashboard() {
           value={isLoading ? '...' : stats.totalActiveUsers}
           icon={Users}
           variant="default"
-          trend={
-            isLoading
-              ? undefined
-              : { value: 'Datos en tiempo real', isPositive: true }
-          }
         />
         <StatsCard
           title="Total de copias"

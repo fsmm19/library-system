@@ -80,6 +80,14 @@ enum MaterialType {
   OTHER
 }
 
+enum Language {
+  EN
+  ES
+  FR
+  DE
+  OTHER
+}
+
 enum MaterialCopyCondition {
   NEW
   GOOD
@@ -123,7 +131,7 @@ model Material {
   subtitle      String?      @db.VarChar(500)
   description   String?      @db.Text
   type          MaterialType
-  language      String       @db.VarChar(50)
+  language      Language
   publishedDate DateTime?    @db.Date
   maxLoanDays   Int?
   createdAt     DateTime     @default(now())
@@ -131,6 +139,7 @@ model Material {
   deletedAt     DateTime?
 
   authors      Author[]
+  categories   Category[]
   book         Book?
   copies       MaterialCopy[]
   reservations Reservation[]
@@ -142,19 +151,38 @@ model Material {
   @@map("materials")
 }
 
-model Author {
-  id          String    @id @default(uuid()) @db.Uuid
-  firstName   String    @db.VarChar(100)
-  middleName  String?   @db.VarChar(100)
-  lastName    String    @db.VarChar(100)
-  nationality String?   @db.VarChar(100)
-  birthDate   DateTime? @db.Date
+model Category {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @db.VarChar(255)
 
   materials Material[]
 
-  @@unique([firstName, middleName, lastName, nationality])
+  @@map("categories")
+}
+
+model Author {
+  id                String    @id @default(uuid()) @db.Uuid
+  firstName         String    @db.VarChar(100)
+  middleName        String?   @db.VarChar(100)
+  lastName          String    @db.VarChar(100)
+  countryOfOriginId String?   @db.Uuid
+  countryOfOrigin   Country?  @relation(fields: [countryOfOriginId], references: [id])
+  birthDate         DateTime? @db.Date
+
+  materials Material[]
+
+  @@unique([firstName, middleName, lastName, countryOfOriginId])
   @@index([lastName, firstName])
   @@map("authors")
+}
+
+model Country {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @db.VarChar(100)
+
+  authors Author[]
+
+  @@map("countries")
 }
 
 model Book {
@@ -166,8 +194,20 @@ model Book {
   materialId String   @unique @db.Uuid
   material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
 
+  publisherId String?    @db.Uuid
+  publisher   Publisher? @relation(fields: [publisherId], references: [id], onDelete: Restrict)
+
   @@index([isbn13])
   @@map("books")
+}
+
+model Publisher {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @db.VarChar(255)
+
+  books Book[]
+
+  @@map("publishers")
 }
 
 model MaterialCopy {
@@ -178,6 +218,9 @@ model MaterialCopy {
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
   deletedAt       DateTime?
+  location        String?               @db.VarChar(100)
+  barcode         String?               @unique @db.VarChar(255)
+  catalogCode     String?               @unique @db.VarChar(255)
 
   materialId   String        @db.Uuid
   material     Material      @relation(fields: [materialId], references: [id], onDelete: Cascade)

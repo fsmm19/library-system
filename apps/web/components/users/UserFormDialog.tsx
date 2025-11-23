@@ -126,6 +126,21 @@ export default function UserFormDialog({
     }
   }, [user, reset]);
 
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open && !user) {
+      reset({
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        role: 'MEMBER',
+      });
+    }
+  }, [open, user, reset]);
+
   const handleFormSubmit = async (data: UserFormData) => {
     // Check if there are changes when editing
     if (isEditing && user) {
@@ -143,9 +158,15 @@ export default function UserFormDialog({
       }
     }
 
+    // Clean middleName: convert empty string to undefined
+    const cleanedData = {
+      ...data,
+      middleName: data.middleName?.trim() || undefined,
+    };
+
     try {
       setIsLoading(true);
-      await onSubmit(data);
+      await onSubmit(cleanedData);
       onOpenChange(false);
       reset();
     } catch (error) {
@@ -153,6 +174,19 @@ export default function UserFormDialog({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    reset({
+      firstName: '',
+      middleName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: 'MEMBER',
+    });
+    onOpenChange(false);
   };
 
   const getInitials = () => {
@@ -169,8 +203,8 @@ export default function UserFormDialog({
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? 'Modifica la información del usuario. Los cambios se guardarán al hacer clic en Guardar.'
-              : 'Completa el formulario para registrar un nuevo usuario en el sistema.'}
+              ? 'Modifica la información del usuario. Los cambios se guardarán al hacer clic en Guardar'
+              : 'Completa el formulario para registrar un nuevo usuario en el sistema'}
           </DialogDescription>
         </DialogHeader>
 
@@ -192,6 +226,18 @@ export default function UserFormDialog({
                 id="firstName"
                 {...register('firstName', {
                   required: 'El primer nombre es requerido',
+                  minLength: {
+                    value: 2,
+                    message: 'El primer nombre debe tener al menos 2 caracteres',
+                  },
+                  maxLength: {
+                    value: 50,
+                    message: 'El primer nombre es demasiado largo',
+                  },
+                  pattern: {
+                    value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
+                    message: 'El nombre solo puede contener letras y espacios',
+                  },
                 })}
                 disabled={isLoading}
                 aria-invalid={errors.firstName ? 'true' : 'false'}
@@ -212,9 +258,31 @@ export default function UserFormDialog({
               </Label>
               <Input
                 id="middleName"
-                {...register('middleName')}
+                {...register('middleName', {
+                  validate: {
+                    minLength: (value) => {
+                      if (value && value.trim().length > 0 && value.trim().length < 2) {
+                        return 'El segundo nombre debe tener al menos 2 caracteres';
+                      }
+                      return true;
+                    },
+                  },
+                  maxLength: {
+                    value: 50,
+                    message: 'El nombre es demasiado largo',
+                  },
+                  pattern: {
+                    value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/,
+                    message: 'El nombre solo puede contener letras y espacios',
+                  },
+                })}
                 disabled={isLoading}
               />
+              {errors.middleName && (
+                <p className="text-sm text-destructive">
+                  {errors.middleName.message}
+                </p>
+              )}
             </div>
           </div>
 
@@ -226,6 +294,18 @@ export default function UserFormDialog({
                 id="lastName"
                 {...register('lastName', {
                   required: 'El apellido es requerido',
+                  minLength: {
+                    value: 2,
+                    message: 'El apellido debe tener al menos 2 caracteres',
+                  },
+                  maxLength: {
+                    value: 50,
+                    message: 'El apellido es demasiado largo',
+                  },
+                  pattern: {
+                    value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
+                    message: 'El apellido solo puede contener letras y espacios',
+                  },
                 })}
                 disabled={isLoading}
                 aria-invalid={errors.lastName ? 'true' : 'false'}
@@ -272,10 +352,14 @@ export default function UserFormDialog({
                 required: !isEditing
                   ? 'El correo electrónico es requerido'
                   : false,
+                maxLength: {
+                  value: 255,
+                  message: 'El correo electrónico es demasiado largo',
+                },
                 pattern: !isEditing
                   ? {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Correo electrónico inválido',
+                      message: 'Formato de correo electrónico inválido',
                     }
                   : undefined,
               })}
@@ -304,6 +388,20 @@ export default function UserFormDialog({
                           value: 8,
                           message:
                             'La contraseña debe tener al menos 8 caracteres',
+                        },
+                        validate: {
+                          hasUpperCase: (value) =>
+                            /[A-Z]/.test(value || '') ||
+                            'La contraseña debe contener al menos una mayúscula',
+                          hasLowerCase: (value) =>
+                            /[a-z]/.test(value || '') ||
+                            'La contraseña debe contener al menos una minúscula',
+                          hasNumber: (value) =>
+                            /[0-9]/.test(value || '') ||
+                            'La contraseña debe contener al menos un número',
+                          hasSpecialChar: (value) =>
+                            /[!@#$%^&*(),.?":{}|<>]/.test(value || '') ||
+                            'La contraseña debe contener al menos un símbolo especial',
                         },
                       })}
                       disabled={isLoading}
@@ -414,7 +512,7 @@ export default function UserFormDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={handleCancel}
               disabled={isLoading}
             >
               Cancelar
