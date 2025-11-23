@@ -5,6 +5,7 @@ import {
   IsStrongPassword,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -20,6 +21,7 @@ export class CreateUserDto {
   firstName: string;
 
   @IsOptional()
+  @ValidateIf((o) => o.middleName !== '' && o.middleName !== null)
   @IsString()
   @MinLength(2)
   @MaxLength(100)

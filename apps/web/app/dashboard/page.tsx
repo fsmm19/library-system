@@ -14,7 +14,7 @@ export default function DashboardPage() {
       if (user.role === 'LIBRARIAN') {
         router.replace('/dashboard/librarian');
       } else if (user.role === 'MEMBER') {
-        router.replace('/catalog');
+        router.replace('/dashboard/member');
       }
     }
   }, [user, isLoading, router]);

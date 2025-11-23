@@ -4,6 +4,7 @@ import { MaterialFactory } from './factories/material.factory';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { SearchMaterialsDto } from './dto/search-materials.dto';
+import { MaterialType } from 'generated/prisma/enums';
 
 @Injectable()
 export class MaterialsService {
@@ -56,7 +57,9 @@ export class MaterialsService {
 
     // Type filter
     if (types && types.length > 0) {
-      where.type = { in: types };
+      // Convert to uppercase to match MaterialType enum
+      const normalizedTypes = types.map((type) => type.toUpperCase());
+      where.type = { in: normalizedTypes };
     }
 
     // Language filter
@@ -201,7 +204,7 @@ export class MaterialsService {
       }
 
       // Update book if provided
-      if (updateMaterialDto.book && material.type === 'book') {
+      if (updateMaterialDto.book && material.type === MaterialType.BOOK) {
         const existingBook = await tx.book.findUnique({
           where: { materialId: id },
         });
@@ -242,6 +245,12 @@ export class MaterialsService {
         authors: true,
         book: true,
       },
+    });
+  }
+
+  async findAllAuthors() {
+    return this.prisma.author.findMany({
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     });
   }
 }

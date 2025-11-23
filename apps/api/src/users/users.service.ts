@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { QueryUsersDto } from './dto/query-users.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { Prisma } from 'generated/prisma/client';
 
 @Injectable()
@@ -40,6 +41,19 @@ export class UsersService {
           lastName: true,
           createdAt: true,
           updatedAt: true,
+          member: {
+            select: {
+              accountState: true,
+              conditions: true,
+            },
+          },
+          librarian: {
+            select: {
+              isActive: true,
+              hireDate: true,
+              endDate: true,
+            },
+          },
         },
       }),
       this.prisma.user.count({ where }),
@@ -71,6 +85,19 @@ export class UsersService {
         lastName: true,
         createdAt: true,
         updatedAt: true,
+        member: {
+          select: {
+            accountState: true,
+            conditions: true,
+          },
+        },
+        librarian: {
+          select: {
+            isActive: true,
+            hireDate: true,
+            endDate: true,
+          },
+        },
       },
     });
 
@@ -94,6 +121,31 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    await this.findOne(id);
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id },
+      data: {
+        firstName: updateUserDto.firstName,
+        middleName: updateUserDto.middleName,
+        lastName: updateUserDto.lastName,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return updatedUser;
   }
 
   async remove(id: string) {

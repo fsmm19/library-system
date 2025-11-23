@@ -1,8 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MaterialWithDetails, SearchMaterialsParams } from '@library/types';
+import {
+  MaterialWithDetails,
+  SearchMaterialsParams,
+  MaterialType,
+} from '@library/types';
 import { materialsApi } from '@/lib/api/materials';
+import { SearchFilters } from '@/types/catalog';
 import {
   Pagination,
   PaginationContent,
@@ -48,15 +53,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { User } from 'lucide-react';
 
-interface SearchFilters {
-  query: string;
-  types: string[];
-  languages: string[];
-  authorName?: string;
-  yearFrom?: number;
-  yearTo?: number;
-}
-
 export default function CatalogPage() {
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,7 +64,8 @@ export default function CatalogPage() {
     yearFrom: undefined,
     yearTo: undefined,
   });
-  const [sortBy, setSortBy] = useState<SearchMaterialsParams['sortBy']>('relevance');
+  const [sortBy, setSortBy] =
+    useState<SearchMaterialsParams['sortBy']>('relevance');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
@@ -88,17 +85,23 @@ export default function CatalogPage() {
       try {
         const searchParams: SearchMaterialsParams = {
           query: filters.query || searchQuery,
-          types: filters.types,
+          types: filters.types as MaterialType[],
           languages: filters.languages,
           authorName: filters.authorName,
-          yearFrom: filters.yearFrom,
-          yearTo: filters.yearTo,
+          yearFrom:
+            filters.yearFrom && filters.yearFrom >= 0
+              ? filters.yearFrom
+              : undefined,
+          yearTo:
+            filters.yearTo && filters.yearTo <= 2100
+              ? filters.yearTo
+              : undefined,
           sortBy,
           page,
           pageSize,
         };
 
-        const response = await materialsApi.search(searchParams);
+        const response = await materialsApi.search(searchParams, undefined);
         setMaterials(response.materials);
         setTotal(response.total);
         setTotalPages(response.totalPages);
@@ -196,7 +199,7 @@ export default function CatalogPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation Bar */}
-      <nav className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <nav className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-backdrop-filter:bg-card/60">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between gap-4">
             {/* Logo */}
@@ -204,13 +207,13 @@ export default function CatalogPage() {
               href="/catalog"
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              <div className="bg-gradient-to-br from-primary to-secondary p-2 rounded-lg shadow-md">
+              <div className="bg-linear-to-br from-primary to-secondary p-2 rounded-lg shadow-md">
                 <BookOpen
                   className="h-6 w-6 text-primary-foreground"
                   strokeWidth={2}
                 />
               </div>
-              <span className="text-xl font-bold">Sistema de Biblioteca</span>
+              <span className="text-xl font-bold">Babel</span>
             </Link>
 
             {/* Auth Section */}
@@ -235,25 +238,48 @@ export default function CatalogPage() {
                           {user.email}
                         </p>
                         <p className="text-xs text-muted-foreground capitalize">
-                          {user.role === 'LIBRARIAN' ? 'Bibliotecario' : 'Miembro'}
+                          {user.role === 'LIBRARIAN'
+                            ? 'Bibliotecario'
+                            : 'Miembro'}
                         </p>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href="/profile">Mi perfil</Link>
+                      <Link
+                        href={
+                          user.role === 'LIBRARIAN'
+                            ? '/dashboard/librarian/profile'
+                            : '/dashboard/member/profile'
+                        }
+                      >
+                        Mi perfil
+                      </Link>
                     </DropdownMenuItem>
                     {user.role === 'LIBRARIAN' && (
                       <DropdownMenuItem asChild>
-                        <Link href="/dashboard/librarian">Panel de administracion</Link>
+                        <Link href="/dashboard/librarian">
+                          Panel de administración
+                        </Link>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem asChild>
-                      <Link href="/my-loans">Mis prestamos</Link>
+                      <Link
+                        href={
+                          user.role === 'LIBRARIAN'
+                            ? '/dashboard/librarian'
+                            : '/dashboard/member'
+                        }
+                      >
+                        Mis prestamos
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={logout} className="text-destructive">
-                      Cerrar sesion
+                    <DropdownMenuItem
+                      onClick={logout}
+                      className="text-destructive"
+                    >
+                      Cerrar sesión
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -267,7 +293,7 @@ export default function CatalogPage() {
                   >
                     <Link href="/auth">
                       <LogIn className="h-4 w-4 mr-2" />
-                      Iniciar sesion
+                      Iniciar sesión
                     </Link>
                   </Button>
                   <Button variant="default" size="sm" asChild>
@@ -290,7 +316,7 @@ export default function CatalogPage() {
             value={searchQuery}
             onChange={setSearchQuery}
             onSearch={handleSearch}
-            placeholder="Buscar por titulo, autor, ISBN..."
+            placeholder="Buscar por título, autor, ISBN..."
           />
         </div>
       </div>
@@ -299,7 +325,7 @@ export default function CatalogPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex gap-6">
           {/* Desktop Filters Sidebar */}
-          <aside className="hidden lg:block w-64 flex-shrink-0">
+          <aside className="hidden lg:block w-64 shrink-0">
             <FiltersSidebar
               filters={filters}
               onFiltersChange={setFilters}
@@ -368,13 +394,13 @@ export default function CatalogPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="relevance">Relevancia</SelectItem>
-                      <SelectItem value="title-asc">Titulo (A-Z)</SelectItem>
-                      <SelectItem value="title-desc">Titulo (Z-A)</SelectItem>
+                      <SelectItem value="title-asc">Título (A-Z)</SelectItem>
+                      <SelectItem value="title-desc">Título (Z-A)</SelectItem>
                       <SelectItem value="year-desc">
-                        Año (mas reciente)
+                        Año (más reciente)
                       </SelectItem>
                       <SelectItem value="year-asc">
-                        Año (mas antiguo)
+                        Año (más antiguo)
                       </SelectItem>
                       <SelectItem value="author">Autor (A-Z)</SelectItem>
                     </SelectContent>
@@ -409,9 +435,9 @@ export default function CatalogPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="12">12 por pagina</SelectItem>
-                      <SelectItem value="24">24 por pagina</SelectItem>
-                      <SelectItem value="48">48 por pagina</SelectItem>
+                      <SelectItem value="12">12 por página</SelectItem>
+                      <SelectItem value="24">24 por página</SelectItem>
+                      <SelectItem value="48">48 por página</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -423,7 +449,7 @@ export default function CatalogPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                 {Array.from({ length: Math.min(pageSize, 6) }).map((_, i) => (
                   <Card key={i}>
-                    <Skeleton className="aspect-[2/3] w-full" />
+                    <Skeleton className="aspect-2/3 w-full" />
                     <CardContent className="p-4">
                       <Skeleton className="h-4 w-3/4 mb-2" />
                       <Skeleton className="h-3 w-1/2" />

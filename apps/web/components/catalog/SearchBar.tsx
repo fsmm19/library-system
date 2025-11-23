@@ -38,7 +38,7 @@ export function SearchBar({
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
           type="text"
-          placeholder={placeholder || 'Buscar por titulo, autor, ISBN...'}
+          placeholder={placeholder || 'Buscar por título, autor, ISBN...'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}

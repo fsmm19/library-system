@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateMaterialDto } from '../dto/create-material.dto';
 import { CreateAuthorDto } from '../dto/create-author.dto';
+import { MaterialType } from 'generated/prisma/enums';
 
 @Injectable()
 export class MaterialFactory {
@@ -19,8 +20,12 @@ export class MaterialFactory {
         data: {
           title: data.title,
           subtitle: data.subtitle,
+          description: data.description,
           type: data.type,
           language: data.language,
+          publishedDate: data.publishedDate
+            ? new Date(data.publishedDate)
+            : null,
           authors: {
             connect: authorIds.map((id) => ({ id })),
           },
@@ -31,7 +36,7 @@ export class MaterialFactory {
       });
 
       // Create book if provided
-      if (data.book && data.type === 'book') {
+      if (data.book && data.type === MaterialType.BOOK) {
         const book = await tx.book.create({
           data: {
             materialId: material.id,

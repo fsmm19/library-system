@@ -37,6 +37,8 @@ export class MembersController {
   }
 
   @Get(':userId')
+  @UseGuards(RolesGuard)
+  @Roles(Role.LIBRARIAN, Role.MEMBER)
   async findOne(
     @CurrentUser() currentUser: any,
     @Param('userId') userId: string,
@@ -106,6 +108,8 @@ export class MembersController {
   }
 
   @Get(':userId/can-borrow')
+  @UseGuards(RolesGuard)
+  @Roles(Role.LIBRARIAN, Role.MEMBER)
   async canBorrow(
     @CurrentUser() currentUser: any,
     @Param('userId') userId: string,

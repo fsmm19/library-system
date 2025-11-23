@@ -21,7 +21,7 @@ model User {
   updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
 
-  partner   Member?
+  member    Member?
   librarian Librarian?
 
   @@index([email])
@@ -69,21 +69,49 @@ enum MemberCondition {
   LOST_COPY
 }
 
+enum MaterialType {
+  BOOK
+  MAGAZINE
+  DVD
+  OTHER
+}
+
+enum MaterialCopyCondition {
+  NEW
+  GOOD
+  FAIR
+  DAMAGED
+  LOST
+}
+
+enum MaterialCopyStatus {
+  AVAILABLE
+  BORROWED
+  RESERVED
+  UNDER_REPAIR
+  REMOVED
+}
+
 model Material {
-  id        String   @id @default(uuid()) @db.Uuid
-  title     String   @db.VarChar(500)
-  subtitle  String?  @db.VarChar(500)
-  type      String   @db.VarChar(50)
-  language  String   @db.VarChar(50)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String        @id @default(uuid()) @db.Uuid
+  title         String        @db.VarChar(500)
+  subtitle      String?       @db.VarChar(500)
+  description   String?       @db.Text
+  type          MaterialType
+  language      String        @db.VarChar(50)
+  publishedDate DateTime?     @db.Date
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
 
   authors Author[]
   book    Book?
+  copies  MaterialCopy[]
 
   @@index([title])
   @@index([type])
   @@index([createdAt])
+  @@index([deletedAt])
   @@map("materials")
 }
 
@@ -113,4 +141,24 @@ model Book {
 
   @@index([isbn13])
   @@map("books")
+}
+
+model MaterialCopy {
+  id              String                 @id @default(uuid()) @db.Uuid
+  acquisitionDate DateTime               @db.Date
+  condition       MaterialCopyCondition
+  status          MaterialCopyStatus
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  deletedAt       DateTime?
+
+  materialId String   @db.Uuid
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@index([materialId])
+  @@index([status])
+  @@index([condition])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("material_copies")
 }

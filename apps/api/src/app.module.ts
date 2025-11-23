@@ -6,6 +6,7 @@ import { MembersModule } from './members/members.module';
 import { LibrariansModule } from './librarians/librarians.module';
 import { AuthModule } from './auth/auth.module';
 import { MaterialsModule } from './materials/materials.module';
+import { MaterialCopiesModule } from './material-copies/material-copies.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MaterialsModule } from './materials/materials.module';
     MembersModule,
     LibrariansModule,
     MaterialsModule,
+    MaterialCopiesModule,
   ],
 })
 export class AppModule {}

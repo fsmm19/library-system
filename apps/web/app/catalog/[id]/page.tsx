@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MaterialWithDetails } from '@library/types';
+import { MaterialType, MaterialWithDetails } from '@library/types';
 import { materialsApi } from '@/lib/api/materials';
 import {
   BookOpen,
@@ -16,12 +16,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTypeIcon, getTypeLabel } from '@/lib/utils/catalog-utils';
@@ -106,7 +101,7 @@ export default function MaterialDetailPage() {
       return;
     }
     // TODO: Implement loan request logic
-    alert('Funcionalidad de prestamo en desarrollo');
+    alert('Funcionalidad de préstamo en desarrollo');
   };
 
   if (isLoading) {
@@ -123,7 +118,7 @@ export default function MaterialDetailPage() {
             <div className="lg:col-span-1">
               <Card>
                 <CardContent className="p-6">
-                  <Skeleton className="aspect-[2/3] w-full mb-4" />
+                  <Skeleton className="aspect-2/3 w-full mb-4" />
                   <Skeleton className="h-8 w-full" />
                 </CardContent>
               </Card>
@@ -150,7 +145,8 @@ export default function MaterialDetailPage() {
           <CardContent className="p-6 text-center">
             <h2 className="text-2xl font-bold mb-4">Material no encontrado</h2>
             <p className="text-muted-foreground mb-6">
-              {error || 'El material que buscas no existe o no está disponible.'}
+              {error ||
+                'El material que buscas no existe o no está disponible.'}
             </p>
             <Button onClick={() => router.push('/catalog')}>
               Volver al catalogo
@@ -199,7 +195,7 @@ export default function MaterialDetailPage() {
           <div className="lg:col-span-1">
             <Card className="sticky top-4">
               <CardContent className="p-6">
-                <div className="aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted mb-4">
+                <div className="aspect-2/3 w-full overflow-hidden rounded-lg bg-muted mb-4">
                   {material.thumbnail ? (
                     <img
                       src={material.thumbnail}
@@ -214,10 +210,19 @@ export default function MaterialDetailPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="outline" className="text-sm flex items-center gap-1">
-                    {material.type === 'book' && <BookOpen className="h-3 w-3" />}
-                    {material.type === 'dvd' && <Film className="h-3 w-3" />}
-                    {material.type === 'magazine' && <Newspaper className="h-3 w-3" />}
+                  <Badge
+                    variant="outline"
+                    className="text-sm flex items-center gap-1"
+                  >
+                    {material.type === MaterialType.BOOK && (
+                      <BookOpen className="h-3 w-3" />
+                    )}
+                    {material.type === MaterialType.DVD && (
+                      <Film className="h-3 w-3" />
+                    )}
+                    {material.type === MaterialType.MAGAZINE && (
+                      <Newspaper className="h-3 w-3" />
+                    )}
                     {getTypeLabel(material.type)}
                   </Badge>
                 </div>
@@ -233,7 +238,7 @@ export default function MaterialDetailPage() {
                     variant="secondary"
                     onClick={handleRequestLoan}
                   >
-                    Solicitar prestamo
+                    Solicitar préstamo
                   </Button>
                 </div>
               </CardContent>
@@ -284,7 +289,7 @@ export default function MaterialDetailPage() {
             {/* Technical Details */}
             <Card>
               <CardHeader>
-                <CardTitle>Detalles tecnicos</CardTitle>
+                <CardTitle>Detalles técnicos</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -320,7 +325,7 @@ export default function MaterialDetailPage() {
                     <div>
                       <dt className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                         <BookOpen className="h-4 w-4" />
-                        Edicion
+                        Edición
                       </dt>
                       <dd className="mt-1 text-sm">{material.book.edition}</dd>
                     </div>
@@ -360,7 +365,10 @@ export default function MaterialDetailPage() {
                 <CardContent>
                   <div className="space-y-4">
                     {material.authors.map((author) => (
-                      <div key={author.id} className="border-l-4 border-primary pl-4">
+                      <div
+                        key={author.id}
+                        className="border-l-4 border-primary pl-4"
+                      >
                         <p className="font-medium">
                           {author.firstName}{' '}
                           {author.middleName && `${author.middleName} `}
@@ -372,7 +380,8 @@ export default function MaterialDetailPage() {
                           )}
                           {author.birthDate && (
                             <span>
-                              Fecha de nacimiento: {formatDate(author.birthDate)}
+                              Fecha de nacimiento:{' '}
+                              {formatDate(author.birthDate)}
                             </span>
                           )}
                         </div>

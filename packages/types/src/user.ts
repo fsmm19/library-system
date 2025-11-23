@@ -9,6 +9,19 @@ export interface User {
   lastName: string;
   createdAt: string;
   updatedAt: string;
+  member?: MemberData | null;
+  librarian?: LibrarianData | null;
+}
+
+export interface MemberData {
+  accountState: AccountState;
+  conditions: MemberCondition[];
+}
+
+export interface LibrarianData {
+  isActive: boolean;
+  hireDate: string;
+  endDate: string | null;
 }
 
 export interface Member {

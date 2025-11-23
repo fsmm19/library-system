@@ -4,6 +4,7 @@ import {
   UpdateMaterialData,
   SearchMaterialsParams,
   SearchMaterialsResponse,
+  Author,
 } from '@library/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -24,6 +25,12 @@ async function handleResponse<T>(response: Response): Promise<T> {
     const error = await response.json().catch(() => ({
       message: 'An error occurred',
     }));
+    console.error('API Error:', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+      url: response.url,
+    });
     throw new MaterialsApiError(
       error.message || 'An error occurred',
       response.status,
@@ -34,25 +41,51 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export const materialsApi = {
-  async search(params: SearchMaterialsParams): Promise<SearchMaterialsResponse> {
+  async search(
+    params: SearchMaterialsParams,
+    token?: string
+  ): Promise<SearchMaterialsResponse> {
     const queryParams = new URLSearchParams();
 
     if (params.query) queryParams.append('query', params.query);
-    if (params.types) params.types.forEach(t => queryParams.append('types', t));
-    if (params.languages) params.languages.forEach(l => queryParams.append('languages', l));
+    if (params.types && params.types.length > 0) {
+      params.types.forEach((t) => queryParams.append('types', t));
+    }
+    if (params.languages && params.languages.length > 0) {
+      params.languages.forEach((l) => queryParams.append('languages', l));
+    }
     if (params.authorName) queryParams.append('authorName', params.authorName);
-    if (params.yearFrom) queryParams.append('yearFrom', params.yearFrom.toString());
+    if (params.yearFrom)
+      queryParams.append('yearFrom', params.yearFrom.toString());
     if (params.yearTo) queryParams.append('yearTo', params.yearTo.toString());
     if (params.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params.page) queryParams.append('page', params.page.toString());
-    if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+    if (params.pageSize)
+      queryParams.append('pageSize', params.pageSize.toString());
 
-    const response = await fetch(`${API_URL}/materials?${queryParams.toString()}`);
+    const headers: HeadersInit = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(
+      `${API_URL}/materials?${queryParams.toString()}`,
+      {
+        headers,
+      }
+    );
     return handleResponse<SearchMaterialsResponse>(response);
   },
 
-  async getById(id: string): Promise<MaterialWithDetails> {
-    const response = await fetch(`${API_URL}/materials/${id}`);
+  async getById(id: string, token?: string): Promise<MaterialWithDetails> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_URL}/materials/${id}`, {
+      headers,
+    });
     return handleResponse<MaterialWithDetails>(response);
   },
 
@@ -95,5 +128,14 @@ export const materialsApi = {
       },
     });
     return handleResponse<MaterialWithDetails>(response);
+  },
+
+  async getAllAuthors(token: string): Promise<Author[]> {
+    const response = await fetch(`${API_URL}/materials/authors`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handleResponse<Author[]>(response);
   },
 };

@@ -5,6 +5,7 @@ import { BookOpen } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import LibrarianSidebar from '@/components/dashboard/LibrarianSidebar';
+import MemberSidebar from '@/components/dashboard/MemberSidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -44,14 +45,17 @@ export default function DashboardLayout({
     <div className="flex h-full flex-col">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b px-6">
-        <div className="bg-gradient-to-br from-primary to-secondary p-2 rounded-lg shadow-md">
-          <BookOpen className="h-6 w-6 text-primary-foreground" strokeWidth={2} />
+        <div className="bg-linear-to-br from-primary to-secondary p-2 rounded-lg shadow-md">
+          <BookOpen
+            className="h-6 w-6 text-primary-foreground"
+            strokeWidth={2}
+          />
         </div>
-        <span className="text-xl font-bold">Sistema de Biblioteca</span>
+        <span className="text-xl font-bold">Babel</span>
       </div>
 
-      {/* Navigation */}
-      <LibrarianSidebar />
+      {/* Navigation - conditional based on user role */}
+      {user.role === 'LIBRARIAN' ? <LibrarianSidebar /> : <MemberSidebar />}
 
       {/* User Profile */}
       <div className="border-t p-4">

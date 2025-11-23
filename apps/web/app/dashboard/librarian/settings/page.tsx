@@ -13,7 +13,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Configuracion</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
         <p className="text-muted-foreground mt-1">
           Ajusta las preferencias de tu cuenta
         </p>
@@ -21,9 +21,9 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Configuracion de cuenta</CardTitle>
+          <CardTitle>Configuración de cuenta</CardTitle>
           <CardDescription>
-            Aqui podras configurar tus preferencias
+            Aquí podrás configurar tus preferencias
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -31,7 +31,7 @@ export default function SettingsPage() {
             <SettingsIcon className="h-16 w-16 mx-auto mb-4 opacity-50" />
             <p>Funcionalidad en desarrollo</p>
             <p className="text-sm mt-2">
-              Proximamente podras configurar tus preferencias desde aqui
+              Próximamente podrás configurar tus preferencias desde aquí
             </p>
           </div>
         </CardContent>

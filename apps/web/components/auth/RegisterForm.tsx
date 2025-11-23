@@ -82,8 +82,8 @@ export default function RegisterForm() {
       await registerMember(cleanedData);
       toast.success('Cuenta creada exitosamente');
 
-      // Redirect to catalog after successful registration
-      router.push('/catalog');
+      // Redirect to member dashboard after successful registration
+      router.push('/dashboard/member');
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Error al crear la cuenta';

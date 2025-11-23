@@ -1,12 +1,17 @@
+import { MaterialType } from './enums';
+
 // Material types
 export interface Material {
   id: string;
   title: string;
   subtitle: string | null;
-  type: string;
+  description: string | null;
+  type: MaterialType;
   language: string;
+  publishedDate: string | null;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
 }
 
 export interface Author {
@@ -30,7 +35,6 @@ export interface MaterialWithDetails extends Material {
   authors: Author[];
   book: Book | null;
   thumbnail?: string;
-  description?: string;
 }
 
 // API Request/Response types
@@ -51,8 +55,10 @@ export interface CreateBookData {
 export interface CreateMaterialData {
   title: string;
   subtitle?: string;
-  type: string;
+  description?: string;
+  type: MaterialType;
   language: string;
+  publishedDate?: string;
   authors: CreateAuthorData[];
   book?: CreateBookData;
 }
@@ -61,7 +67,7 @@ export interface UpdateMaterialData extends Partial<CreateMaterialData> {}
 
 export interface SearchMaterialsParams {
   query?: string;
-  types?: string[];
+  types?: MaterialType[];
   languages?: string[];
   authorName?: string;
   yearFrom?: number;

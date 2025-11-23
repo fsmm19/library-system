@@ -71,14 +71,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     loadStoredAuth();
   }, []);
 
+  const setCookie = useCallback((name: string, value: string, days = 7) => {
+    if (typeof window !== 'undefined') {
+      const expires = new Date();
+      expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+      document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
+    }
+  }, []);
+
+  const deleteCookie = useCallback((name: string) => {
+    if (typeof window !== 'undefined') {
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+    }
+  }, []);
+
   const clearStoredAuth = useCallback(() => {
     if (typeof window !== 'undefined') {
+      // Clear localStorage
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       localStorage.removeItem(MEMBER_KEY);
       localStorage.removeItem(LIBRARIAN_KEY);
+
+      // Clear cookies
+      deleteCookie('auth_token');
+      deleteCookie('user_role');
     }
-  }, []);
+  }, [deleteCookie]);
 
   const storeAuth = useCallback(
     (
@@ -88,6 +107,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       librarian?: AuthState['librarian']
     ) => {
       if (typeof window !== 'undefined') {
+        // Store in localStorage
         localStorage.setItem(TOKEN_KEY, token);
         localStorage.setItem(USER_KEY, JSON.stringify(user));
         if (member) {
@@ -96,9 +116,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (librarian) {
           localStorage.setItem(LIBRARIAN_KEY, JSON.stringify(librarian));
         }
+
+        // Store in cookies for server-side access (middleware)
+        setCookie('auth_token', token);
+        if (user) {
+          setCookie('user_role', user.role);
+        }
       }
     },
-    []
+    [setCookie]
   );
 
   const login = useCallback(

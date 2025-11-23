@@ -7,7 +7,7 @@ import {
   Max,
   IsIn,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 export class SearchMaterialsDto {
   @IsString()
@@ -17,11 +17,19 @@ export class SearchMaterialsDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    return Array.isArray(value) ? value : [value];
+  })
   types?: string[];
 
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    return Array.isArray(value) ? value : [value];
+  })
   languages?: string[];
 
   @IsString()

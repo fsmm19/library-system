@@ -15,15 +15,15 @@ export default function ReportsPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Reportes</h1>
         <p className="text-muted-foreground mt-1">
-          Visualiza estadisticas y reportes del sistema
+          Visualiza estadísticas y reportes del sistema
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Reportes y estadisticas</CardTitle>
+          <CardTitle>Reportes y estadísticas</CardTitle>
           <CardDescription>
-            Aqui se mostraran graficos y reportes del sistema
+            Aquí se mostraran gráficos y reportes del sistema
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -31,7 +31,7 @@ export default function ReportsPage() {
             <BarChart3 className="h-16 w-16 mx-auto mb-4 opacity-50" />
             <p>Funcionalidad en desarrollo</p>
             <p className="text-sm mt-2">
-              Proximamente podras ver reportes detallados desde aqui
+              Próximamente podrás ver reportes detallados desde aquí
             </p>
           </div>
         </CardContent>

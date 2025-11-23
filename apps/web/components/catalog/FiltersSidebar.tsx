@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { getTypeLabel } from '@/lib/utils/catalog-utils';
+import { useState, useEffect } from 'react';
 
 interface FiltersSidebarProps {
   filters: SearchFilters;
@@ -21,8 +22,29 @@ export function FiltersSidebar({
   resultsCount,
   onClose,
 }: FiltersSidebarProps) {
-  const materialTypes = ['book', 'dvd', 'magazine', 'cd', 'document', 'map'];
-  const languages = ['Español', 'Inglés', 'Francés', 'Alemán', 'Italiano'];
+  const materialTypes = ['BOOK', 'DVD', 'MAGAZINE', 'OTHER'];
+  const languages = [
+    'Español',
+    'Inglés',
+    'Francés',
+    'Alemán',
+    'Italiano',
+    'Otro',
+  ];
+
+  // Estado local para los campos de año
+  const [yearFromInput, setYearFromInput] = useState<string>(
+    filters.yearFrom?.toString() || ''
+  );
+  const [yearToInput, setYearToInput] = useState<string>(
+    filters.yearTo?.toString() || ''
+  );
+
+  // Sincronizar estado local cuando cambien los filtros externos
+  useEffect(() => {
+    setYearFromInput(filters.yearFrom?.toString() || '');
+    setYearToInput(filters.yearTo?.toString() || '');
+  }, [filters.yearFrom, filters.yearTo]);
 
   const handleTypeToggle = (type: string) => {
     const newTypes = filters.types.includes(type)
@@ -39,6 +61,8 @@ export function FiltersSidebar({
   };
 
   const clearFilters = () => {
+    setYearFromInput('');
+    setYearToInput('');
     onFiltersChange({
       query: filters.query,
       types: [],
@@ -52,7 +76,6 @@ export function FiltersSidebar({
   const activeFiltersCount =
     filters.types.length +
     filters.languages.length +
-    (filters.authorName ? 1 : 0) +
     (filters.yearFrom ? 1 : 0) +
     (filters.yearTo ? 1 : 0);
 
@@ -78,9 +101,9 @@ export function FiltersSidebar({
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Tipo de Material */}
+        {/* Tipo de material */}
         <div className="space-y-3">
-          <h3 className="font-medium text-sm">Tipo de Material</h3>
+          <h3 className="font-medium text-sm">Tipo de material</h3>
           <div className="space-y-2">
             {materialTypes.map((type) => (
               <div key={type} className="flex items-center space-x-2">
@@ -126,29 +149,9 @@ export function FiltersSidebar({
 
         <Separator />
 
-        {/* Autor */}
+        {/* Año de publicación */}
         <div className="space-y-3">
-          <h3 className="font-medium text-sm">Autor</h3>
-          <Input
-            id="author-name"
-            type="text"
-            placeholder="Nombre del autor"
-            value={filters.authorName || ''}
-            onChange={(e) =>
-              onFiltersChange({
-                ...filters,
-                authorName: e.target.value || undefined,
-              })
-            }
-            className="h-9"
-          />
-        </div>
-
-        <Separator />
-
-        {/* Año de Publicación */}
-        <div className="space-y-3">
-          <h3 className="font-medium text-sm">Año de Publicación</h3>
+          <h3 className="font-medium text-sm">Año de publicación</h3>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label htmlFor="year-from" className="text-xs">
@@ -158,15 +161,20 @@ export function FiltersSidebar({
                 id="year-from"
                 type="number"
                 placeholder="1900"
-                value={filters.yearFrom || ''}
-                onChange={(e) =>
+                min="1900"
+                max="2100"
+                value={yearFromInput}
+                onChange={(e) => setYearFromInput(e.target.value)}
+                onBlur={() => {
+                  const numValue = yearFromInput
+                    ? parseInt(yearFromInput)
+                    : undefined;
                   onFiltersChange({
                     ...filters,
-                    yearFrom: e.target.value
-                      ? parseInt(e.target.value)
-                      : undefined,
-                  })
-                }
+                    yearFrom:
+                      numValue && numValue >= 1900 ? numValue : undefined,
+                  });
+                }}
                 className="h-9"
               />
             </div>
@@ -177,16 +185,20 @@ export function FiltersSidebar({
               <Input
                 id="year-to"
                 type="number"
-                placeholder="2024"
-                value={filters.yearTo || ''}
-                onChange={(e) =>
+                placeholder="2025"
+                min="1900"
+                max="2100"
+                value={yearToInput}
+                onChange={(e) => setYearToInput(e.target.value)}
+                onBlur={() => {
+                  const numValue = yearToInput
+                    ? parseInt(yearToInput)
+                    : undefined;
                   onFiltersChange({
                     ...filters,
-                    yearTo: e.target.value
-                      ? parseInt(e.target.value)
-                      : undefined,
-                  })
-                }
+                    yearTo: numValue && numValue <= 2100 ? numValue : undefined,
+                  });
+                }}
                 className="h-9"
               />
             </div>

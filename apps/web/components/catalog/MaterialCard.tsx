@@ -1,4 +1,4 @@
-import { MaterialWithDetails } from '@library/types';
+import { MaterialType, MaterialWithDetails } from '@library/types';
 import { BookOpen, Film, Newspaper } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { getTypeIcon, getTypeLabel } from '@/lib/utils/catalog-utils';
@@ -26,11 +26,11 @@ interface MaterialCardProps {
 export function MaterialCard({ material }: MaterialCardProps) {
   const getIconComponent = () => {
     switch (material.type) {
-      case 'book':
+      case MaterialType.BOOK:
         return <BookOpen className="h-5 w-5" />;
-      case 'dvd':
+      case MaterialType.DVD:
         return <Film className="h-5 w-5" />;
-      case 'magazine':
+      case MaterialType.MAGAZINE:
         return <Newspaper className="h-5 w-5" />;
       default:
         return <BookOpen className="h-5 w-5" />;
@@ -40,7 +40,7 @@ export function MaterialCard({ material }: MaterialCardProps) {
   return (
     <Link href={`/catalog/${material.id}`}>
       <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] h-full">
-        <div className="aspect-[2/3] overflow-hidden bg-muted relative">
+        <div className="aspect-2/3 overflow-hidden bg-muted relative">
           {material.thumbnail ? (
             <Image
               src={material.thumbnail}

@@ -6,7 +6,7 @@ import {
   MoreVertical,
   Newspaper,
 } from 'lucide-react';
-import { MaterialWithDetails } from '@library/types';
+import { MaterialType, MaterialWithDetails } from '@library/types';
 import { getTypeIcon, getTypeLabel } from '@/lib/utils/catalog-utils';
 
 function formatAuthors(authors: MaterialWithDetails['authors']): string {
@@ -39,11 +39,11 @@ interface MaterialListItemProps {
 export function MaterialListItem({ material, index }: MaterialListItemProps) {
   const getIconComponent = () => {
     switch (material.type) {
-      case 'book':
+      case MaterialType.BOOK:
         return <BookOpen className="h-5 w-5" />;
-      case 'dvd':
+      case MaterialType.DVD:
         return <Film className="h-5 w-5" />;
-      case 'magazine':
+      case MaterialType.MAGAZINE:
         return <Newspaper className="h-5 w-5" />;
       default:
         return <BookOpen className="h-5 w-5" />;
@@ -55,12 +55,12 @@ export function MaterialListItem({ material, index }: MaterialListItemProps) {
       <CardContent className="p-4">
         <div className="flex gap-4">
           {/* Index Number */}
-          <div className="flex-shrink-0 w-8 text-muted-foreground font-medium">
+          <div className="shrink-0 w-8 text-muted-foreground font-medium">
             {index}
           </div>
 
           {/* Thumbnail */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <Link href={`/catalog/${material.id}`}>
               <div className="w-20 h-28 overflow-hidden bg-muted rounded">
                 {material.thumbnail ? (
@@ -134,7 +134,7 @@ export function MaterialListItem({ material, index }: MaterialListItemProps) {
           </div>
 
           {/* Right Icons */}
-          <div className="flex-shrink-0 flex flex-col gap-1">
+          <div className="shrink-0 flex flex-col gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Bookmark className="h-4 w-4" />
             </Button>

@@ -160,14 +160,10 @@ export function searchMaterials(params: SearchParams): SearchResult {
       filtered.sort((a, b) => b.title.localeCompare(a.title));
       break;
     case 'year-asc':
-      filtered.sort(
-        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
-      );
+      filtered.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
       break;
     case 'year-desc':
-      filtered.sort(
-        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-      );
+      filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       break;
     case 'author':
       filtered.sort((a, b) => {
@@ -197,9 +193,7 @@ export function searchMaterials(params: SearchParams): SearchResult {
   };
 }
 
-export function getMaterialById(
-  id: string
-): MaterialWithDetails | undefined {
+export function getMaterialById(id: string): MaterialWithDetails | undefined {
   return mockMaterials.find((m) => m.id === id);
 }
 
@@ -211,6 +205,8 @@ export function getTypeLabel(type: string): string {
       return 'DVD';
     case 'magazine':
       return 'Revista';
+    case 'other':
+      return 'Otro';
     case 'cd':
       return 'CD';
     case 'document':
@@ -241,9 +237,7 @@ export function getTypeIcon(type: string): string {
   }
 }
 
-export function formatAuthors(
-  authors: MaterialWithDetails['authors']
-): string {
+export function formatAuthors(authors: MaterialWithDetails['authors']): string {
   if (!authors || authors.length === 0) return 'Autor desconocido';
 
   return authors

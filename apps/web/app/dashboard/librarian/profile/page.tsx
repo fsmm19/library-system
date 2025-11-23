@@ -23,7 +23,7 @@ export default function ProfilePage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Mi Perfil</h1>
         <p className="text-muted-foreground mt-1">
-          Informacion de tu cuenta y configuracion personal
+          Información de tu cuenta y configuración personal
         </p>
       </div>
 
@@ -51,7 +51,7 @@ export default function ProfilePage() {
         {/* Profile Details */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Informacion personal</CardTitle>
+            <CardTitle>Información personal</CardTitle>
             <CardDescription>
               Detalles de tu cuenta en el sistema
             </CardDescription>
@@ -81,7 +81,7 @@ export default function ProfilePage() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Mail className="h-4 w-4" />
-                  Correo electronico
+                  Correo electrónico
                 </label>
                 <p className="text-sm mt-1">{user.email}</p>
               </div>
@@ -110,7 +110,7 @@ export default function ProfilePage() {
             <div className="pt-4">
               <Button disabled>Editar perfil</Button>
               <p className="text-xs text-muted-foreground mt-2">
-                La edicion de perfil estara disponible proximamente
+                La edición de perfil estará disponible próximamente
               </p>
             </div>
           </CardContent>

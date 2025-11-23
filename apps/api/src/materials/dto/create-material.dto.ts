@@ -5,10 +5,13 @@ import {
   IsArray,
   ValidateNested,
   MaxLength,
+  IsEnum,
+  IsDateString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateAuthorDto } from './create-author.dto';
 import { CreateBookDto } from './create-book.dto';
+import { MaterialType } from 'generated/prisma/enums';
 
 export class CreateMaterialDto {
   @IsString()
@@ -22,14 +25,21 @@ export class CreateMaterialDto {
   subtitle?: string;
 
   @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsEnum(MaterialType)
   @IsNotEmpty()
-  @MaxLength(50)
-  type: string;
+  type: MaterialType;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
   language: string;
+
+  @IsDateString()
+  @IsOptional()
+  publishedDate?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

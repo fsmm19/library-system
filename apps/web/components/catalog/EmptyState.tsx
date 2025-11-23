@@ -15,19 +15,19 @@ export function EmptyState({ onClear }: EmptyStateProps) {
           No se encontraron resultados
         </h3>
         <p className="text-muted-foreground text-center mb-6 max-w-md">
-          Intenta con otros terminos de busqueda o ajusta los filtros aplicados
+          Intenta con otros términos de búsqueda o ajusta los filtros aplicados
         </p>
         <div className="space-y-2 text-sm text-muted-foreground mb-6">
           <p>Sugerencias:</p>
           <ul className="list-disc list-inside space-y-1">
-            <li>Verifica la ortografia de las palabras</li>
-            <li>Usa terminos mas generales</li>
+            <li>Verifica la ortografía de las palabras</li>
+            <li>Usa términos más generales</li>
             <li>Reduce los filtros aplicados</li>
-            <li>Intenta buscar por autor o categoria</li>
+            <li>Intenta buscar por autor o categoría</li>
           </ul>
         </div>
         <Button onClick={onClear} variant="outline">
-          Limpiar busqueda y filtros
+          Limpiar búsqueda y filtros
         </Button>
       </CardContent>
     </Card>

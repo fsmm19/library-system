@@ -22,7 +22,7 @@ export default function LoansPage() {
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Nuevo prestamo
+          Nuevo préstamo
         </Button>
       </div>
 
@@ -30,14 +30,14 @@ export default function LoansPage() {
         <CardHeader>
           <CardTitle>Lista de prestamos</CardTitle>
           <CardDescription>
-            Aqui se mostrara la lista de todos los prestamos
+            Aquí se mostrara la lista de todos los prestamos
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12 text-muted-foreground">
             <p>Funcionalidad en desarrollo</p>
             <p className="text-sm mt-2">
-              Proximamente podras gestionar prestamos desde aqui
+              Próximamente podrás gestionar prestamos desde aquí
             </p>
           </div>
         </CardContent>

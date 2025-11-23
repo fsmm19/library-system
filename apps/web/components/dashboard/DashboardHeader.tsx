@@ -32,18 +32,71 @@ export default function DashboardHeader({
     logout();
   };
 
-  const getBreadcrumbs = () => {
-    if (pathname === '/dashboard/librarian') return ['Dashboard', 'Inicio'];
-    if (pathname.includes('/librarian/users')) return ['Dashboard', 'Usuarios'];
+  const getBreadcrumbs = (): Array<{ label: string; href: string | null }> => {
+    const basePath =
+      userRole === 'LIBRARIAN' ? '/dashboard/librarian' : '/dashboard/member';
+
+    // Librarian breadcrumbs
+    if (pathname === '/dashboard/librarian')
+      return [{ label: 'Dashboard', href: null }];
+    if (pathname.includes('/librarian/users'))
+      return [
+        { label: 'Dashboard', href: '/dashboard/librarian' },
+        { label: 'Usuarios', href: null },
+      ];
     if (pathname.includes('/librarian/materials'))
-      return ['Dashboard', 'Materiales'];
+      return [
+        { label: 'Dashboard', href: '/dashboard/librarian' },
+        { label: 'Materiales', href: null },
+      ];
+    if (pathname.includes('/librarian/copies'))
+      return [
+        { label: 'Dashboard', href: '/dashboard/librarian' },
+        { label: 'Copias', href: null },
+      ];
     if (pathname.includes('/librarian/loans'))
-      return ['Dashboard', 'Prestamos'];
+      return [
+        { label: 'Dashboard', href: '/dashboard/librarian' },
+        { label: 'Prestamos', href: null },
+      ];
     if (pathname.includes('/librarian/reports'))
-      return ['Dashboard', 'Reportes'];
-    if (pathname.includes('/profile')) return ['Dashboard', 'Perfil'];
-    if (pathname.includes('/settings')) return ['Dashboard', 'Configuracion'];
-    return ['Dashboard'];
+      return [
+        { label: 'Dashboard', href: '/dashboard/librarian' },
+        { label: 'Reportes', href: null },
+      ];
+
+    // Member breadcrumbs
+    if (pathname === '/dashboard/member')
+      return [{ label: 'Dashboard', href: null }];
+    if (pathname.includes('/member/loans'))
+      return [
+        { label: 'Dashboard', href: '/dashboard/member' },
+        { label: 'Mis Prestamos', href: null },
+      ];
+    if (pathname.includes('/member/reservations'))
+      return [
+        { label: 'Dashboard', href: '/dashboard/member' },
+        { label: 'Mis Reservas', href: null },
+      ];
+    if (pathname.includes('/member/favorites'))
+      return [
+        { label: 'Dashboard', href: '/dashboard/member' },
+        { label: 'Favoritos', href: null },
+      ];
+
+    // Common breadcrumbs
+    if (pathname.includes('/profile'))
+      return [
+        { label: 'Dashboard', href: basePath },
+        { label: 'Perfil', href: null },
+      ];
+    if (pathname.includes('/settings'))
+      return [
+        { label: 'Dashboard', href: basePath },
+        { label: 'Configuración', href: null },
+      ];
+
+    return [{ label: 'Dashboard', href: null }];
   };
 
   const getRoleLabel = () => {
@@ -68,15 +121,24 @@ export default function DashboardHeader({
         {getBreadcrumbs().map((crumb, index) => (
           <div key={index} className="flex items-center gap-2">
             {index > 0 && <span className="text-muted-foreground">/</span>}
-            <span
-              className={
-                index === getBreadcrumbs().length - 1
-                  ? 'font-medium'
-                  : 'text-muted-foreground'
-              }
-            >
-              {crumb}
-            </span>
+            {crumb.href ? (
+              <button
+                onClick={() => router.push(crumb.href!)}
+                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                {crumb.label}
+              </button>
+            ) : (
+              <span
+                className={
+                  index === getBreadcrumbs().length - 1
+                    ? 'font-medium'
+                    : 'text-muted-foreground'
+                }
+              >
+                {crumb.label}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -98,9 +160,9 @@ export default function DashboardHeader({
             <DropdownMenuSeparator />
             <div className="space-y-2 p-2">
               <div className="rounded-lg bg-accent/50 p-3 text-sm">
-                <p className="font-medium">Prestamo vencido</p>
+                <p className="font-medium">Préstamo vencido</p>
                 <p className="text-muted-foreground text-xs mt-1">
-                  Hay prestamos que requieren atencion
+                  Hay prestamos que requieren atención
                 </p>
               </div>
               <div className="rounded-lg bg-accent/50 p-3 text-sm">
@@ -112,7 +174,7 @@ export default function DashboardHeader({
               <div className="rounded-lg bg-accent/50 p-3 text-sm">
                 <p className="font-medium">Material bajo stock</p>
                 <p className="text-muted-foreground text-xs mt-1">
-                  Algunos materiales necesitan reposicion
+                  Algunos materiales necesitan reposición
                 </p>
               </div>
             </div>
@@ -144,16 +206,28 @@ export default function DashboardHeader({
             <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => router.push('/dashboard/librarian/profile')}
+              onClick={() =>
+                router.push(
+                  userRole === 'LIBRARIAN'
+                    ? '/dashboard/librarian/profile'
+                    : '/dashboard/member/profile'
+                )
+              }
             >
               <User className="mr-2 h-4 w-4" />
               Perfil
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => router.push('/dashboard/librarian/settings')}
+              onClick={() =>
+                router.push(
+                  userRole === 'LIBRARIAN'
+                    ? '/dashboard/librarian/settings'
+                    : '/dashboard/member/settings'
+                )
+              }
             >
               <Settings className="mr-2 h-4 w-4" />
-              Configuracion
+              Configuración
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -161,7 +235,7 @@ export default function DashboardHeader({
               className="text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Cerrar sesion
+              Cerrar sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

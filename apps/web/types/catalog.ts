@@ -31,7 +31,8 @@ export interface Book {
 }
 
 // Extended types for catalog functionality
-export interface MaterialWithDetails extends Omit<Material, 'authors' | 'book'> {
+export interface MaterialWithDetails
+  extends Omit<Material, 'authors' | 'book'> {
   authors: Author[];
   book: Book | null;
   thumbnail?: string;
@@ -40,6 +41,15 @@ export interface MaterialWithDetails extends Omit<Material, 'authors' | 'book'> 
 
 // Search and filter types
 export interface SearchFilters {
+  query: string;
+  types: string[];
+  languages: string[];
+  authorName?: string;
+  yearFrom?: number;
+  yearTo?: number;
+}
+
+export interface CatalogFilters {
   query: string;
   types: string[];
   languages: string[];

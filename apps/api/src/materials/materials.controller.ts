@@ -17,6 +17,7 @@ import { SearchMaterialsDto } from './dto/search-materials.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { Public } from 'src/auth/decorators/public.decorator';
 import { Role } from 'generated/prisma/enums';
 
 @Controller('materials')
@@ -31,11 +32,21 @@ export class MaterialsController {
   }
 
   @Get()
+  @Public()
+  @UseGuards(JwtAuthGuard)
   findAll(@Query() searchDto: SearchMaterialsDto) {
     return this.materialsService.findAll(searchDto);
   }
 
+  @Get('authors')
+  @UseGuards(JwtAuthGuard)
+  findAllAuthors() {
+    return this.materialsService.findAllAuthors();
+  }
+
   @Get(':id')
+  @Public()
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.materialsService.findOne(id);
   }
