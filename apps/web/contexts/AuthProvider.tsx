@@ -215,12 +215,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
   }, [clearStoredAuth]);
 
+  const updateUser = useCallback((updatedUser: AuthState['user']) => {
+    if (!updatedUser) return;
+
+    // Update localStorage only
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+    }
+
+    // Update state - the useEffect will handle theme sync
+    setState((prev) => ({
+      ...prev,
+      user: updatedUser,
+    }));
+  }, []);
+
   const value = {
     ...state,
     login,
     logout,
     registerMember,
     registerLibrarian,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

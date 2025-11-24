@@ -1,121 +1,160 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  ChangePasswordFormData,
+  PersonalInfoFormData,
+} from '@/lib/schemas/profile-schemas';
+import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Settings, Shield, UserIcon } from 'lucide-react';
+import { PersonalInfoSection } from '@/components/profile/PersonalInfoSection';
+import { SecuritySection } from '@/components/profile/SecuritySection';
+import { PreferencesSection } from '@/components/profile/PreferencesSection';
 import { useAuth } from '@/contexts/AuthContext';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Mail, Calendar } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { usersApi } from '@/lib/api/users';
+import { User } from '@library/types';
 
-export default function ProfilePage() {
-  const { user } = useAuth();
+export default function LibrarianProfilePage() {
+  // VERSIÓN 2.0 - COMPLETAMENTE NUEVA
+  const {
+    user: authUser,
+    token,
+    isLoading,
+    isAuthenticated,
+    updateUser,
+  } = useAuth();
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
 
-  if (!user) return null;
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/auth');
+      return;
+    }
+
+    if (authUser) {
+      setUser(authUser);
+    }
+  }, [authUser, isLoading, isAuthenticated, router]);
+
+  const handleUpdatePersonalInfo = async (data: PersonalInfoFormData) => {
+    if (!user || !token) return;
+
+    try {
+      const updatedUser = await usersApi.updateProfile(
+        {
+          firstName: data.firstName,
+          middleName: data.middleName || null,
+          lastName: data.lastName,
+        },
+        token
+      );
+
+      setUser(updatedUser);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleChangePassword = async (data: ChangePasswordFormData) => {
+    if (!token) return;
+
+    try {
+      await usersApi.changePassword(
+        {
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+        },
+        token
+      );
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleUpdatePreferences = async (data: {
+    theme: string;
+    notifications: boolean;
+  }) => {
+    if (!token) return;
+
+    try {
+      await usersApi.updatePreferences(data, token);
+
+      // Recargar la página para aplicar el nuevo tema
+      window.location.reload();
+    } catch (error) {
+      console.error('Error al actualizar preferencias:', error);
+      throw error;
+    }
+  };
+  if (isLoading || !user) {
+    return (
+      <div className="container py-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Cargando perfil...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="container py-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Mi perfil</h1>
-        <p className="text-muted-foreground mt-1">
-          Información de tu cuenta y configuración personal
+        <p className="text-muted-foreground">
+          Gestiona tu información personal y preferencias de seguridad
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Profile Summary */}
-        <Card className="lg:col-span-1">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center text-center">
-              <Avatar className="h-24 w-24 mb-4">
-                <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                  {user.firstName[0].toUpperCase()}
-                  {user.lastName[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <h2 className="text-2xl font-bold">
-                {user.firstName} {user.middleName} {user.lastName}
-              </h2>
-              <Badge className="mt-2">
-                {user.role === 'LIBRARIAN' ? 'Bibliotecario' : 'Miembro'}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+      <ProfileHeader user={user} />
 
-        {/* Profile Details */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Información personal</CardTitle>
-            <CardDescription>
-              Detalles de tu cuenta en el sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">
-                  Nombre
-                </label>
-                <p className="text-sm mt-1">{user.firstName}</p>
-              </div>
-              {user.middleName && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Segundo nombre
-                  </label>
-                  <p className="text-sm mt-1">{user.middleName}</p>
-                </div>
-              )}
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">
-                  Apellido
-                </label>
-                <p className="text-sm mt-1">{user.lastName}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  Correo electrónico
-                </label>
-                <p className="text-sm mt-1">{user.email}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">
-                  Rol
-                </label>
-                <p className="text-sm mt-1">
-                  {user.role === 'LIBRARIAN' ? 'Bibliotecario' : 'Miembro'}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Fecha de registro
-                </label>
-                <p className="text-sm mt-1">
-                  {new Date(user.createdAt).toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-              </div>
-            </div>
-            <div className="pt-4">
-              <Button disabled>Editar perfil</Button>
-              <p className="text-xs text-muted-foreground mt-2">
-                La edición de perfil estará disponible próximamente
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Tabs defaultValue="personal" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="personal" className="gap-2">
+            <UserIcon className="h-4 w-4" />
+            Información personal
+          </TabsTrigger>
+          <TabsTrigger value="security" className="gap-2">
+            <Shield className="h-4 w-4" />
+            Seguridad
+          </TabsTrigger>
+          <TabsTrigger value="preferences" className="gap-2">
+            <Settings className="h-4 w-4" />
+            Preferencias
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="personal" className="space-y-6">
+          <PersonalInfoSection
+            user={user}
+            onUpdate={handleUpdatePersonalInfo}
+          />
+        </TabsContent>
+
+        <TabsContent value="security" className="space-y-6">
+          <SecuritySection onChangePassword={handleChangePassword} />
+        </TabsContent>
+
+        <TabsContent value="preferences" className="space-y-6">
+          <PreferencesSection
+            initialPreferences={{
+              theme:
+                (authUser?.theme?.toLowerCase() as
+                  | 'light'
+                  | 'dark'
+                  | 'system') || 'system',
+              language: 'es',
+              dateFormat: 'DD/MM/YYYY',
+              timezone: 'America/Santiago',
+              notifications: authUser?.notifications ?? true,
+            }}
+            onUpdate={handleUpdatePreferences}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

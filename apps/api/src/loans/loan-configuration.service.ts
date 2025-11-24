@@ -20,6 +20,7 @@ export class LoanConfigurationService {
           gracePeriodDays: 0,
           dailyFineAmount: 1.0,
           allowLoansWithFines: false,
+          reservationHoldDays: 3,
         },
       });
     }

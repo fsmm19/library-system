@@ -29,6 +29,7 @@ export interface AuthContextType extends AuthState {
   registerLibrarian: (
     data: RegisterLibrarianData
   ) => Promise<RegisterLibrarianResponse>;
+  updateUser: (user: User) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(

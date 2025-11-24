@@ -84,7 +84,9 @@ export default function UsersPage() {
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortColumn, setSortColumn] = useState<'name' | 'createdAt' | null>('createdAt');
+  const [sortColumn, setSortColumn] = useState<'name' | 'createdAt' | null>(
+    'createdAt'
+  );
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
@@ -141,8 +143,12 @@ export default function UsersPage() {
 
     switch (sortColumn) {
       case 'name': {
-        const nameA = `${a.firstName} ${a.middleName || ''} ${a.lastName}`.toLowerCase();
-        const nameB = `${b.firstName} ${b.middleName || ''} ${b.lastName}`.toLowerCase();
+        const nameA = `${a.firstName} ${a.middleName || ''} ${
+          a.lastName
+        }`.toLowerCase();
+        const nameB = `${b.firstName} ${b.middleName || ''} ${
+          b.lastName
+        }`.toLowerCase();
         compareValue = nameA.localeCompare(nameB);
         break;
       }
@@ -485,10 +491,10 @@ export default function UsersPage() {
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground whitespace-nowrap">
           Mostrando {paginatedUsers.length} de {sortedUsers.length} usuarios
         </p>
-        {totalPages > 1 && (
+        {totalPages > 1 ? (
           <Pagination>
             <PaginationContent>
               <PaginationItem>
@@ -499,9 +505,7 @@ export default function UsersPage() {
                       ? 'pointer-events-none opacity-50'
                       : 'cursor-pointer'
                   }
-                >
-                  Anterior
-                </PaginationPrevious>
+                />
               </PaginationItem>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(
                 (page) => (
@@ -526,12 +530,12 @@ export default function UsersPage() {
                       ? 'pointer-events-none opacity-50'
                       : 'cursor-pointer'
                   }
-                >
-                  Siguiente
-                </PaginationNext>
+                />
               </PaginationItem>
             </PaginationContent>
           </Pagination>
+        ) : (
+          <div />
         )}
       </div>
 

@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { PasswordRequirements } from '@/components/shared/PasswordRequirements';
 import { User, Role } from '@library/types';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -228,7 +229,8 @@ export default function UserFormDialog({
                   required: 'El primer nombre es requerido',
                   minLength: {
                     value: 2,
-                    message: 'El primer nombre debe tener al menos 2 caracteres',
+                    message:
+                      'El primer nombre debe tener al menos 2 caracteres',
                   },
                   maxLength: {
                     value: 50,
@@ -261,7 +263,11 @@ export default function UserFormDialog({
                 {...register('middleName', {
                   validate: {
                     minLength: (value) => {
-                      if (value && value.trim().length > 0 && value.trim().length < 2) {
+                      if (
+                        value &&
+                        value.trim().length > 0 &&
+                        value.trim().length < 2
+                      ) {
                         return 'El segundo nombre debe tener al menos 2 caracteres';
                       }
                       return true;
@@ -304,7 +310,8 @@ export default function UserFormDialog({
                   },
                   pattern: {
                     value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
-                    message: 'El apellido solo puede contener letras y espacios',
+                    message:
+                      'El apellido solo puede contener letras y espacios',
                   },
                 })}
                 disabled={isLoading}
@@ -451,17 +458,8 @@ export default function UserFormDialog({
                       className="h-1.5"
                       indicatorClassName={passwordStrength.color}
                     />
-                    <div className="pt-2 space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        La contraseña debe contener:
-                      </p>
-                      <ul className="text-xs space-y-0.5 text-muted-foreground">
-                        <li>• Mínimo 8 caracteres</li>
-                        <li>• Una letra mayúscula (A-Z)</li>
-                        <li>• Una letra minúscula (a-z)</li>
-                        <li>• Un número (0-9)</li>
-                        <li>• Un símbolo especial (!@#$%...)</li>
-                      </ul>
+                    <div className="pt-2">
+                      <PasswordRequirements password={password} />
                     </div>
                   </div>
                 )}

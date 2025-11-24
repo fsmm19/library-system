@@ -1,4 +1,4 @@
-import { AccountState, MemberCondition, Role } from './enums';
+import { AccountState, MemberCondition, Role, Theme } from './enums';
 
 export interface User {
   id: string;
@@ -7,6 +7,8 @@ export interface User {
   firstName: string;
   middleName: string | null;
   lastName: string;
+  theme: Theme;
+  notifications: boolean;
   createdAt: string;
   updatedAt: string;
   member?: MemberData | null;

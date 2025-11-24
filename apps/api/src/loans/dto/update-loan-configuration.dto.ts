@@ -29,4 +29,9 @@ export class UpdateLoanConfigurationDto {
   @IsBoolean()
   @IsOptional()
   allowLoansWithFines?: boolean;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  reservationHoldDays?: number;
 }

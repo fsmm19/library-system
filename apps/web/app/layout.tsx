@@ -4,6 +4,8 @@ import './globals.css';
 import { AuthProvider } from '@/contexts/AuthProvider';
 import { ReservationsProvider } from '@/contexts/ReservationsContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { ThemeSync } from '@/components/ThemeSync';
 import { Toaster } from 'sonner';
 
 const geistSans = Geist({
@@ -27,18 +29,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <ReservationsProvider>
-            <FavoritesProvider>
-              {children}
-              <Toaster richColors position="top-right" />
-            </FavoritesProvider>
-          </ReservationsProvider>
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <ThemeSync />
+            <ReservationsProvider>
+              <FavoritesProvider>
+                {children}
+                <Toaster richColors position="top-right" />
+              </FavoritesProvider>
+            </ReservationsProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

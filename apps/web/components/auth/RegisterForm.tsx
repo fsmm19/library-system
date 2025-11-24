@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { PasswordRequirements } from '@/components/shared/PasswordRequirements';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -254,17 +255,8 @@ export default function RegisterForm() {
               className="h-1.5"
               indicatorClassName={passwordStrength.color}
             />
-            <div className="pt-2 space-y-1">
-              <p className="text-xs text-muted-foreground">
-                La contraseña debe contener:
-              </p>
-              <ul className="text-xs space-y-0.5 text-muted-foreground">
-                <li>" Mínimo 8 caracteres</li>
-                <li>" Una letra mayúscula (A-Z)</li>
-                <li>" Una letra minúscula (a-z)</li>
-                <li>" Un número (0-9)</li>
-                <li>" Un símbolo especial (!@#$%...)</li>
-              </ul>
+            <div className="pt-2">
+              <PasswordRequirements password={password} />
             </div>
           </div>
         )}

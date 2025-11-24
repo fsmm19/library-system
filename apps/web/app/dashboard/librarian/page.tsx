@@ -17,6 +17,8 @@ import {
   Users,
   History,
   DollarSign,
+  Copy,
+  Database,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -92,6 +94,8 @@ export default function LibrarianDashboard() {
     overdueLoans: 0,
     soonToExpireLoans: 0,
     suspendedUsers: 0,
+    pendingFines: 0,
+    damagedCopies: 0,
   });
   const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
   const [allActivity, setAllActivity] = useState<Activity[]>([]);
@@ -154,6 +158,11 @@ export default function LibrarianDashboard() {
         // Fetch material copies
         const copiesResponse = await materialCopiesApi.getAll({}, token);
         const totalCopies = copiesResponse.copies?.length || 0;
+
+        // Count damaged copies
+        const damagedCopies =
+          copiesResponse.copies?.filter((copy) => copy.condition === 'DAMAGED')
+            .length || 0;
 
         // Fetch loans
         const loansResponse = await loansApi.getAll({}, token);
@@ -284,6 +293,8 @@ export default function LibrarianDashboard() {
           overdueLoans,
           soonToExpireLoans,
           suspendedUsers,
+          pendingFines,
+          damagedCopies,
         });
         setRecentActivity(sortedActivities.slice(0, 5));
         setAllActivity(sortedActivities);
@@ -395,13 +406,11 @@ export default function LibrarianDashboard() {
               {isLoading ? '...' : stats.pendingFines}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {isLoading ? '' : `${stats.pendingFines} multas sin pagar`}
+              {isLoading
+                ? ''
+                : `${stats.pendingFines === 1 ? 'Multa' : 'Multas'} sin pagar`}
             </p>
-            <Link href="/dashboard/librarian/fines">
-              <Button variant="link" className="mt-2 p-0 h-auto">
-                Ver todas las multas →
-              </Button>
-            </Link>
+            <Link href="/dashboard/librarian/fines"></Link>
           </CardContent>
         </Card>
 
@@ -419,11 +428,7 @@ export default function LibrarianDashboard() {
             <p className="text-xs text-muted-foreground mt-1">
               {isLoading ? '' : 'Total por cobrar'}
             </p>
-            <Link href="/dashboard/librarian/fines">
-              <Button variant="link" className="mt-2 p-0 h-auto">
-                Gestionar pagos →
-              </Button>
-            </Link>
+            <Link href="/dashboard/librarian/fines"></Link>
           </CardContent>
         </Card>
       </div>
@@ -757,9 +762,51 @@ export default function LibrarianDashboard() {
                   </div>
                 )}
 
+                {pendingActions.pendingFines > 0 && (
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {pendingActions.pendingFines}{' '}
+                        {pendingActions.pendingFines === 1
+                          ? 'multa pendiente'
+                          : 'multas pendientes'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Requieren gestión de cobro
+                      </p>
+                    </div>
+                    <Badge variant="destructive">
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      Cobrar
+                    </Badge>
+                  </div>
+                )}
+
+                {pendingActions.damagedCopies > 0 && (
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {pendingActions.damagedCopies}{' '}
+                        {pendingActions.damagedCopies === 1
+                          ? 'copia dañada'
+                          : 'copias dañadas'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Requieren revisión o reparación
+                      </p>
+                    </div>
+                    <Badge className="bg-orange-500 hover:bg-orange-600">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      Revisar
+                    </Badge>
+                  </div>
+                )}
+
                 {pendingActions.overdueLoans === 0 &&
                   pendingActions.soonToExpireLoans === 0 &&
-                  pendingActions.suspendedUsers === 0 && (
+                  pendingActions.suspendedUsers === 0 &&
+                  pendingActions.pendingFines === 0 &&
+                  pendingActions.damagedCopies === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       <p className="text-sm">
                         ✅ No hay acciones pendientes en este momento
@@ -771,11 +818,6 @@ export default function LibrarianDashboard() {
                   )}
               </div>
             )}
-            <Button variant="outline" className="w-full mt-4" asChild>
-              <Link href="/dashboard/librarian/loans">
-                Ver todos los préstamos
-              </Link>
-            </Button>
           </CardContent>
         </Card>
       </div>
@@ -803,15 +845,39 @@ export default function LibrarianDashboard() {
               </Link>
             </Button>
             <Button variant="outline" className="justify-start" asChild>
+              <Link href="/dashboard/librarian/copies">
+                <Copy className="mr-2 h-4 w-4" />
+                Gestionar copias
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start" asChild>
               <Link href="/dashboard/librarian/loans">
                 <FileText className="mr-2 h-4 w-4" />
-                Gestionar prestamos
+                Gestionar préstamos
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start" asChild>
+              <Link href="/dashboard/librarian/fines">
+                <DollarSign className="mr-2 h-4 w-4" />
+                Gestionar multas
               </Link>
             </Button>
             <Button variant="outline" className="justify-start" asChild>
               <Link href="/dashboard/librarian/reports">
                 <TrendingUp className="mr-2 h-4 w-4" />
                 Ver reportes
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start" asChild>
+              <Link href="/dashboard/librarian/system">
+                <Database className="mr-2 h-4 w-4" />
+                Configuración del sistema
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start" asChild>
+              <Link href="/catalog">
+                <Package className="mr-2 h-4 w-4" />
+                Ir al catálogo
               </Link>
             </Button>
           </div>

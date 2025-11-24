@@ -14,6 +14,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -65,6 +73,8 @@ const statusColors: Record<
   CANCELLED: 'outline',
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function LoansPage() {
   const { token } = useAuth();
   const [loans, setLoans] = useState<LoanWithDetails[]>([]);
@@ -77,6 +87,7 @@ export default function LoansPage() {
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (token) {
@@ -87,6 +98,10 @@ export default function LoansPage() {
   useEffect(() => {
     filterLoans();
   }, [loans, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   const fetchLoans = async () => {
     try {
@@ -123,6 +138,11 @@ export default function LoansPage() {
 
     setFilteredLoans(filtered);
   };
+
+  const totalPages = Math.ceil(filteredLoans.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedLoans = filteredLoans.slice(startIndex, endIndex);
 
   const handleRenewLoan = async (loanId: string) => {
     try {
@@ -223,7 +243,7 @@ export default function LoansPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLoans.map((loan) => (
+                {paginatedLoans.map((loan) => (
                   <TableRow key={loan.id}>
                     <TableCell>
                       <div>
@@ -310,6 +330,55 @@ export default function LoansPage() {
           )}
         </CardContent>
       </Card>
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground whitespace-nowrap">
+          Mostrando {paginatedLoans.length} de {filteredLoans.length} préstamos
+        </p>
+        {totalPages > 1 ? (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className={
+                    currentPage === 1
+                      ? 'pointer-events-none opacity-50'
+                      : 'cursor-pointer'
+                  }
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  className={
+                    currentPage === totalPages
+                      ? 'pointer-events-none opacity-50'
+                      : 'cursor-pointer'
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        ) : (
+          <div />
+        )}
+      </div>
 
       <CreateLoanDialog
         open={createDialogOpen}

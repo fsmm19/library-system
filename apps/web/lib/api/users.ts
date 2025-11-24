@@ -150,12 +150,8 @@ export const usersApi = {
     return handleResponse<void>(response);
   },
 
-  async updateProfile(
-    userId: string,
-    data: UpdateUserData,
-    token: string
-  ): Promise<User> {
-    const response = await fetch(`${API_URL}/users/${userId}`, {
+  async updateProfile(data: UpdateUserData, token: string): Promise<User> {
+    const response = await fetch(`${API_URL}/users/me`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -164,5 +160,46 @@ export const usersApi = {
       body: JSON.stringify(data),
     });
     return handleResponse<User>(response);
+  },
+
+  async changePassword(
+    data: { currentPassword: string; newPassword: string },
+    token: string
+  ): Promise<void> {
+    const response = await fetch(`${API_URL}/auth/change-password`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<void>(response);
+  },
+
+  async updatePreferences(
+    data: { theme?: string; notifications?: boolean },
+    token: string
+  ): Promise<User> {
+    console.log('🔵 usersApi.updatePreferences - Iniciando');
+    console.log('🔵 URL:', `${API_URL}/users/me/preferences`);
+    console.log('🔵 Data:', data);
+    console.log('🔵 Token presente?', !!token);
+
+    const response = await fetch(`${API_URL}/users/me/preferences`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    console.log('🔵 Response status:', response.status);
+    console.log('🔵 Response ok?', response.ok);
+
+    const result = await handleResponse<User>(response);
+    console.log('🔵 Result:', result);
+    return result;
   },
 };

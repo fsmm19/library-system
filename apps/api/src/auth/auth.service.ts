@@ -8,8 +8,9 @@ import { UserFactory } from 'src/users/factories/user.factory';
 import { UsersService } from 'src/users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterMemberDto } from './dto/register-member.dto';
-import { Role } from 'generated/prisma/enums';
 import { RegisterLibrarianDto } from './dto/register-librarian.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { Role } from 'generated/prisma/enums';
 
 @Injectable()
 export class AuthService {
@@ -52,6 +53,8 @@ export class AuthService {
         firstName: user.firstName,
         middleName: user.middleName,
         lastName: user.lastName,
+        theme: user.theme,
+        notifications: user.notifications,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       },
@@ -89,6 +92,8 @@ export class AuthService {
         firstName: user.firstName,
         middleName: user.middleName,
         lastName: user.lastName,
+        theme: user.theme,
+        notifications: user.notifications,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       },
@@ -118,6 +123,8 @@ export class AuthService {
         firstName: user.firstName,
         middleName: user.middleName,
         lastName: user.lastName,
+        theme: user.theme,
+        notifications: user.notifications,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       },
@@ -127,5 +134,26 @@ export class AuthService {
 
   async validateUser(userId: string) {
     return this.usersService.findOne(userId);
+  }
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+    const user = await this.usersService.findOneWithPassword(userId);
+
+    // Verificar que la contraseña actual sea correcta
+    const isPasswordValid = await this.userFactory.comparePasswords(
+      changePasswordDto.currentPassword,
+      user.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('La contraseña actual es incorrecta');
+    }
+
+    // Actualizar la contraseña
+    const hashedPassword = await this.userFactory.hashPassword(
+      changePasswordDto.newPassword,
+    );
+
+    await this.usersService.updatePassword(userId, hashedPassword);
   }
 }

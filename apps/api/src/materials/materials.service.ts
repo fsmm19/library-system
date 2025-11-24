@@ -108,6 +108,8 @@ export class MaterialsService {
 
     // Sorting
     let orderBy: any = {};
+    let useCustomRelevanceSort = false;
+
     switch (sortBy) {
       case 'title-asc':
         orderBy = { title: 'asc' };
@@ -125,35 +127,63 @@ export class MaterialsService {
         // This is more complex in Prisma, will default to relevance
         orderBy = { title: 'asc' };
         break;
+      case 'relevance':
       default:
+        // For relevance, we'll use custom sorting
+        useCustomRelevanceSort = true;
         orderBy = { createdAt: 'desc' };
     }
 
     // Count total
     const total = await this.prisma.material.count({ where });
 
-    // Get paginated results
-    const materials = await this.prisma.material.findMany({
-      where,
-      orderBy,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      include: {
-        authors: true,
-        categories: true,
-        book: true,
-        copies: {
-          where: {
-            status: {
-              not: 'REMOVED',
+    // Get materials
+    let materials;
+    if (useCustomRelevanceSort) {
+      // For relevance sorting, fetch all results to sort by availability
+      materials = await this.prisma.material.findMany({
+        where,
+        orderBy,
+        include: {
+          authors: true,
+          categories: true,
+          book: true,
+          copies: {
+            where: {
+              status: {
+                not: 'REMOVED',
+              },
+            },
+            select: {
+              status: true,
             },
           },
-          select: {
-            status: true,
+        },
+      });
+    } else {
+      // For other sorts, use regular pagination
+      materials = await this.prisma.material.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          authors: true,
+          categories: true,
+          book: true,
+          copies: {
+            where: {
+              status: {
+                not: 'REMOVED',
+              },
+            },
+            select: {
+              status: true,
+            },
           },
         },
-      },
-    });
+      });
+    }
 
     // Add copy statistics to each material
     const materialsWithCopyStats = materials.map((material) => {
@@ -171,8 +201,41 @@ export class MaterialsService {
       };
     });
 
+    // Apply custom relevance sorting if needed
+    let finalMaterials = materialsWithCopyStats;
+    if (useCustomRelevanceSort) {
+      // Sort by availability priority, then by date
+      finalMaterials = materialsWithCopyStats.sort((a, b) => {
+        // First, categorize by availability
+        const getAvailabilityPriority = (material: any) => {
+          if (material.availableCopies > 0) return 1; // Has available copies
+          if (material.totalCopies > 0) return 2; // Has copies but not available
+          return 3; // No copies
+        };
+
+        const priorityA = getAvailabilityPriority(a);
+        const priorityB = getAvailabilityPriority(b);
+
+        // If same priority, sort by date (most recent first)
+        if (priorityA === priorityB) {
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        }
+
+        // Otherwise sort by priority
+        return priorityA - priorityB;
+      });
+
+      // Apply pagination after custom sorting
+      finalMaterials = finalMaterials.slice(
+        (page - 1) * pageSize,
+        page * pageSize,
+      );
+    }
+
     return {
-      materials: materialsWithCopyStats,
+      materials: finalMaterials,
       total,
       page,
       pageSize,
@@ -412,6 +475,9 @@ export class MaterialsService {
 
   async findAllAuthors() {
     return this.prisma.author.findMany({
+      include: {
+        countryOfOrigin: true,
+      },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     });
   }
@@ -590,6 +656,9 @@ export class MaterialsService {
 
     return this.prisma.author.update({
       where: { id },
+      include: {
+        countryOfOrigin: true,
+      },
       data,
     });
   }

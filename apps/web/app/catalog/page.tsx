@@ -86,6 +86,23 @@ export default function CatalogPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
+  // Load view mode from localStorage on mount
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem('catalog-view-mode') as
+      | 'grid'
+      | 'list'
+      | null;
+    if (savedViewMode) {
+      setViewMode(savedViewMode);
+    }
+  }, []);
+
+  // Save view mode to localStorage when it changes
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    localStorage.setItem('catalog-view-mode', mode);
+  };
+
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setFilters({ ...filters, query: '' });
@@ -520,7 +537,7 @@ export default function CatalogPage() {
                     <Button
                       variant={viewMode === 'list' ? 'default' : 'ghost'}
                       size="sm"
-                      onClick={() => setViewMode('list')}
+                      onClick={() => handleViewModeChange('list')}
                       className="rounded-r-none"
                       title="Vista en lista"
                     >
@@ -529,7 +546,7 @@ export default function CatalogPage() {
                     <Button
                       variant={viewMode === 'grid' ? 'default' : 'ghost'}
                       size="sm"
-                      onClick={() => setViewMode('grid')}
+                      onClick={() => handleViewModeChange('grid')}
                       className="rounded-l-none"
                       title="Vista en cuadricula"
                     >

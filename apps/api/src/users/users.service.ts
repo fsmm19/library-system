@@ -83,6 +83,8 @@ export class UsersService {
         firstName: true,
         middleName: true,
         lastName: true,
+        theme: true,
+        notifications: true,
         createdAt: true,
         updatedAt: true,
         member: {
@@ -123,6 +125,21 @@ export class UsersService {
     return user;
   }
 
+  async findOneWithPassword(id: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id,
+        deletedAt: null,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return user;
+  }
+
   async update(id: string, updateUserDto: UpdateUserDto) {
     await this.findOne(id);
 
@@ -140,6 +157,8 @@ export class UsersService {
         firstName: true,
         middleName: true,
         lastName: true,
+        theme: true,
+        notifications: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -170,5 +189,58 @@ export class UsersService {
     });
 
     return count > 0;
+  }
+
+  async updatePassword(userId: string, hashedPassword: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash: hashedPassword,
+      },
+    });
+  }
+
+  async updatePreferences(userId: string, preferencesDto: any) {
+    await this.findOne(userId);
+
+    console.log('updatePreferences - userId:', userId);
+    console.log('updatePreferences - preferencesDto:', preferencesDto);
+
+    // Preparar los datos a actualizar
+    const updateData: any = {};
+
+    // Transformar el tema a mayúsculas si existe
+    if (preferencesDto.theme !== undefined) {
+      updateData.theme = preferencesDto.theme.toUpperCase();
+      console.log('Tema transformado:', updateData.theme);
+    }
+
+    // Actualizar notificaciones si existe
+    if (preferencesDto.notifications !== undefined) {
+      updateData.notifications = preferencesDto.notifications;
+    }
+
+    console.log('updateData a guardar:', updateData);
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        theme: true,
+        notifications: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    console.log('Usuario actualizado:', updatedUser);
+
+    return updatedUser;
   }
 }

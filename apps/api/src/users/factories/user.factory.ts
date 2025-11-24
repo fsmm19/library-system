@@ -64,7 +64,7 @@ export class UserFactory {
     });
   }
 
-  private async hashPassword(password: string): Promise<string> {
+  async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, this.SALT_ROUNDS);
   }
 

@@ -18,6 +18,7 @@ import {
   Package,
   FileText,
   Loader2,
+  DollarSign,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import { usersApi } from '@/lib/api/users';
 import { materialsApi } from '@/lib/api/materials';
 import { loansApi } from '@/lib/api/loans';
 import { materialCopiesApi } from '@/lib/api/material-copies';
+import { finesApi } from '@/lib/api/fines';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -55,6 +57,14 @@ export default function ReportsPage() {
     overdueLoans: 0,
     returnedLoans: 0,
     averageLoanDuration: 0,
+    totalFines: 0,
+    pendingFines: 0,
+    paidFines: 0,
+    cancelledFines: 0,
+    waivedFines: 0,
+    totalFinesAmount: 0,
+    pendingFinesAmount: 0,
+    paidFinesAmount: 0,
   });
   const [materialsByType, setMaterialsByType] = useState<
     { type: string; count: number; percentage: number }[]
@@ -95,17 +105,24 @@ export default function ReportsPage() {
         };
 
         // Fetch all data
-        const [allUsers, materialsResponse, loansResponse, copiesResponse] =
-          await Promise.all([
-            fetchAllUsers(),
-            materialsApi.search({}, token),
-            loansApi.getAll({}, token),
-            materialCopiesApi.getAll({}, token),
-          ]);
+        const [
+          allUsers,
+          materialsResponse,
+          loansResponse,
+          copiesResponse,
+          finesResponse,
+        ] = await Promise.all([
+          fetchAllUsers(),
+          materialsApi.search({}, token),
+          loansApi.getAll({}, token),
+          materialCopiesApi.getAll({}, token),
+          finesApi.getAll({}, token),
+        ]);
 
         const allMaterials = materialsResponse.materials || [];
         const allLoans = loansResponse.loans || [];
         const allCopies = copiesResponse.copies || [];
+        const allFines = finesResponse.fines || [];
 
         // User statistics
         const totalUsers = allUsers.length;
@@ -154,6 +171,26 @@ export default function ReportsPage() {
           returnedLoansWithDates.length > 0
             ? Math.round(totalDuration / returnedLoansWithDates.length)
             : 0;
+
+        // Fines statistics
+        const totalFines = allFines.length;
+        const pendingFines = allFines.filter(
+          (f) => f.status === 'PENDING'
+        ).length;
+        const paidFines = allFines.filter((f) => f.status === 'PAID').length;
+        const cancelledFines = allFines.filter(
+          (f) => f.status === 'CANCELLED'
+        ).length;
+        const waivedFines = allFines.filter(
+          (f) => f.status === 'WAIVED'
+        ).length;
+        const totalFinesAmount = allFines.reduce((sum, f) => sum + f.amount, 0);
+        const pendingFinesAmount = allFines
+          .filter((f) => f.status === 'PENDING')
+          .reduce((sum, f) => sum + (f.amount - f.paidAmount), 0);
+        const paidFinesAmount = allFines
+          .filter((f) => f.status === 'PAID')
+          .reduce((sum, f) => sum + f.paidAmount, 0);
 
         // Materials by type
         const typeCount: { [key: string]: number } = {};
@@ -240,6 +277,14 @@ export default function ReportsPage() {
           overdueLoans,
           returnedLoans,
           averageLoanDuration,
+          totalFines,
+          pendingFines,
+          paidFines,
+          cancelledFines,
+          waivedFines,
+          totalFinesAmount,
+          pendingFinesAmount,
+          paidFinesAmount,
         });
         setMaterialsByType(materialsByTypeArray);
         setTopBorrowedMaterials(topBorrowed);
@@ -278,6 +323,7 @@ export default function ReportsPage() {
           <TabsTrigger value="loans">Préstamos</TabsTrigger>
           <TabsTrigger value="materials">Materiales</TabsTrigger>
           <TabsTrigger value="users">Usuarios</TabsTrigger>
+          <TabsTrigger value="fines">Multas</TabsTrigger>
         </TabsList>
 
         {/* General Tab */}
@@ -645,6 +691,242 @@ export default function ReportsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Fines Tab */}
+        <TabsContent value="fines" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle>Multas pendientes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-red-600">
+                  {stats.pendingFines}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  ${stats.pendingFinesAmount.toFixed(2)} por cobrar
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Multas pagadas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-600">
+                  {stats.paidFines}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  ${stats.paidFinesAmount.toFixed(2)} recaudados
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Multas canceladas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-600">
+                  {stats.cancelledFines}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Total canceladas
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Resumen general</CardTitle>
+                <CardDescription>
+                  Estadísticas generales de multas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <div>
+                      <p className="text-sm font-medium">Total de multas</p>
+                      <p className="text-xs text-muted-foreground">
+                        Todas las multas registradas
+                      </p>
+                    </div>
+                    <div className="text-2xl font-bold">{stats.totalFines}</div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <div>
+                      <p className="text-sm font-medium">
+                        Monto total generado
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Suma de todas las multas
+                      </p>
+                    </div>
+                    <div className="text-2xl font-bold">
+                      ${stats.totalFinesAmount.toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <div>
+                      <p className="text-sm font-medium">Tasa de pago</p>
+                      <p className="text-xs text-muted-foreground">
+                        Porcentaje de multas pagadas
+                      </p>
+                    </div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {stats.totalFines > 0
+                        ? Math.round((stats.paidFines / stats.totalFines) * 100)
+                        : 0}
+                      %
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Distribución de multas</CardTitle>
+                <CardDescription>
+                  Estado actual de todas las multas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Pendientes</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {stats.pendingFines} multas
+                        </span>
+                        <Badge variant="destructive">
+                          {stats.totalFines > 0
+                            ? Math.round(
+                                (stats.pendingFines / stats.totalFines) * 100
+                              )
+                            : 0}
+                          %
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-red-600 rounded-full h-2 transition-all"
+                        style={{
+                          width: `${
+                            stats.totalFines > 0
+                              ? (stats.pendingFines / stats.totalFines) * 100
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Pagadas</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {stats.paidFines} multas
+                        </span>
+                        <Badge variant="default" className="bg-green-600">
+                          {stats.totalFines > 0
+                            ? Math.round(
+                                (stats.paidFines / stats.totalFines) * 100
+                              )
+                            : 0}
+                          %
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-green-600 rounded-full h-2 transition-all"
+                        style={{
+                          width: `${
+                            stats.totalFines > 0
+                              ? (stats.paidFines / stats.totalFines) * 100
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Canceladas</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {stats.cancelledFines} multas
+                        </span>
+                        <Badge variant="outline">
+                          {stats.totalFines > 0
+                            ? Math.round(
+                                (stats.cancelledFines / stats.totalFines) * 100
+                              )
+                            : 0}
+                          %
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-gray-600 rounded-full h-2 transition-all"
+                        style={{
+                          width: `${
+                            stats.totalFines > 0
+                              ? (stats.cancelledFines / stats.totalFines) * 100
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Condonadas</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {stats.waivedFines} multas
+                        </span>
+                        <Badge variant="secondary">
+                          {stats.totalFines > 0
+                            ? Math.round(
+                                (stats.waivedFines / stats.totalFines) * 100
+                              )
+                            : 0}
+                          %
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-blue-600 rounded-full h-2 transition-all"
+                        style={{
+                          width: `${
+                            stats.totalFines > 0
+                              ? (stats.waivedFines / stats.totalFines) * 100
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

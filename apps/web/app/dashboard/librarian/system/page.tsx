@@ -19,6 +19,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -30,6 +38,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
+import {
   Plus,
   Pencil,
   Trash2,
@@ -37,6 +53,9 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Search,
+  X,
+  Filter,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { materialsApi } from '@/lib/api/materials';
@@ -51,6 +70,8 @@ import type {
 } from '@library/types';
 
 type MasterDataType = 'category' | 'country' | 'publisher' | 'author';
+
+const ITEMS_PER_PAGE = 10;
 
 interface DialogState {
   open: boolean;
@@ -73,7 +94,14 @@ export default function SystemConfigPage() {
     type: 'category',
     item: null,
   });
-  const [formData, setFormData] = useState({ name: '' });
+  const [formData, setFormData] = useState<{
+    name: string;
+    firstName?: string;
+    middleName?: string;
+    lastName?: string;
+    countryOfOriginId?: string;
+    birthDate?: string;
+  }>({ name: '' });
   const [submitting, setSubmitting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{
@@ -83,6 +111,19 @@ export default function SystemConfigPage() {
   const [deleting, setDeleting] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [countrySearch, setCountrySearch] = useState('');
+  const [publisherSearch, setPublisherSearch] = useState('');
+  const [authorSearch, setAuthorSearch] = useState('');
+  const [authorCountryFilter, setAuthorCountryFilter] = useState<string>('');
+  const [currentPageCategories, setCurrentPageCategories] = useState(1);
+  const [currentPageCountries, setCurrentPageCountries] = useState(1);
+  const [currentPagePublishers, setCurrentPagePublishers] = useState(1);
+  const [currentPageAuthors, setCurrentPageAuthors] = useState(1);
+  const [formErrors, setFormErrors] = useState<{
+    firstName?: string;
+    lastName?: string;
+  }>({});
 
   const sortItems = <T extends { name: string }>(
     items: T[],
@@ -119,6 +160,32 @@ export default function SystemConfigPage() {
   useEffect(() => {
     loadAllData();
   }, [token]);
+
+  useEffect(() => {
+    setCurrentPageCategories(1);
+  }, [categorySearch]);
+
+  useEffect(() => {
+    setCurrentPageCountries(1);
+  }, [countrySearch]);
+
+  useEffect(() => {
+    setCurrentPagePublishers(1);
+  }, [publisherSearch]);
+
+  useEffect(() => {
+    setCurrentPageAuthors(1);
+  }, [authorSearch, authorCountryFilter]);
+
+  const paginateItems = <T,>(items: T[], currentPage: number) => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return items.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = (itemsLength: number) => {
+    return Math.ceil(itemsLength / ITEMS_PER_PAGE);
+  };
 
   const loadAllData = async () => {
     if (!token) return;
@@ -158,7 +225,25 @@ export default function SystemConfigPage() {
     item: { id: string; name: string } | null = null
   ) => {
     setDialogState({ open: true, mode, type, item });
-    setFormData({ name: item?.name || '' });
+
+    // Si estamos editando un autor, cargar todos sus datos
+    if (mode === 'edit' && type === 'author' && item) {
+      const author = authors.find((a) => a.id === item.id);
+      if (author) {
+        setFormData({
+          name: item.name,
+          firstName: author.firstName,
+          middleName: author.middleName || '',
+          lastName: author.lastName,
+          countryOfOriginId: author.countryOfOriginId || '',
+          birthDate: author.birthDate
+            ? author.birthDate.split('T')[0]
+            : undefined,
+        });
+      }
+    } else {
+      setFormData({ name: item?.name || '' });
+    }
   };
 
   const handleCloseDialog = () => {
@@ -168,7 +253,15 @@ export default function SystemConfigPage() {
       type: 'category',
       item: null,
     });
-    setFormData({ name: '' });
+    setFormData({
+      name: '',
+      firstName: undefined,
+      middleName: undefined,
+      lastName: undefined,
+      countryOfOriginId: undefined,
+      birthDate: undefined,
+    });
+    setFormErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -177,10 +270,13 @@ export default function SystemConfigPage() {
 
     // Check if there are no changes in edit mode
     if (dialogState.mode === 'edit' && dialogState.item) {
-      if (formData.name.trim() === dialogState.item.name.trim()) {
-        toast.info('No hay cambios para guardar');
-        handleCloseDialog();
-        return;
+      // Para autores, no verificar cambios aquí ya que tienen campos adicionales
+      if (dialogState.type !== 'author') {
+        if (formData.name.trim() === dialogState.item.name.trim()) {
+          toast.info('No hay cambios para guardar');
+          handleCloseDialog();
+          return;
+        }
       }
     }
 
@@ -236,9 +332,54 @@ export default function SystemConfigPage() {
           );
           toast.success('Editorial actualizada correctamente');
         } else if (dialogState.type === 'author') {
+          // Validar campos requeridos para autor
+          const errors: { firstName?: string; lastName?: string } = {};
+
+          if (!formData.firstName?.trim()) {
+            errors.firstName = 'El primer nombre es obligatorio';
+          } else if (formData.firstName.trim().length < 2) {
+            errors.firstName =
+              'El primer nombre debe tener al menos 2 caracteres';
+          } else if (formData.firstName.trim().length > 50) {
+            errors.firstName = 'El primer nombre es demasiado largo';
+          } else if (
+            !/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(formData.firstName.trim())
+          ) {
+            errors.firstName =
+              'El nombre solo puede contener letras y espacios';
+          }
+
+          if (!formData.lastName?.trim()) {
+            errors.lastName = 'El apellido es obligatorio';
+          } else if (formData.lastName.trim().length < 2) {
+            errors.lastName = 'El apellido debe tener al menos 2 caracteres';
+          } else if (formData.lastName.trim().length > 50) {
+            errors.lastName = 'El apellido es demasiado largo';
+          } else if (
+            !/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(formData.lastName.trim())
+          ) {
+            errors.lastName =
+              'El apellido solo puede contener letras y espacios';
+          }
+
+          if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
+            return;
+          }
+
+          setFormErrors({});
           const updated = await materialsApi.updateAuthor(
             dialogState.item.id,
-            { firstName: formData.name, lastName: '' },
+            {
+              firstName: formData.firstName!.trim(),
+              middleName: formData.middleName?.trim() || '',
+              lastName: formData.lastName!.trim(),
+              countryOfOriginId: formData.countryOfOriginId || null,
+              birthDate:
+                formData.birthDate && formData.birthDate.trim() !== ''
+                  ? `${formData.birthDate}T00:00:00.000Z`
+                  : null,
+            },
             token
           );
           setAuthors(authors.map((a) => (a.id === updated.id ? updated : a)));
@@ -340,6 +481,11 @@ export default function SystemConfigPage() {
           ? 0
           : Number(loanConfig.dailyFineAmount),
       allowLoansWithFines: loanConfig.allowLoansWithFines,
+      reservationHoldDays:
+        typeof loanConfig.reservationHoldDays === 'string' &&
+        loanConfig.reservationHoldDays === ''
+          ? 0
+          : Number(loanConfig.reservationHoldDays),
     };
 
     // Validaciones
@@ -388,6 +534,15 @@ export default function SystemConfigPage() {
       return;
     }
 
+    if (
+      normalizedConfig.reservationHoldDays < 1 ||
+      normalizedConfig.reservationHoldDays > 30 ||
+      isNaN(normalizedConfig.reservationHoldDays)
+    ) {
+      toast.error('Los días de espera de reservación deben estar entre 1 y 30');
+      return;
+    }
+
     setSavingConfig(true);
     try {
       const updated = await loansApi.updateConfiguration(
@@ -401,6 +556,68 @@ export default function SystemConfigPage() {
     } finally {
       setSavingConfig(false);
     }
+  };
+
+  const renderPagination = (
+    totalItems: number,
+    currentPage: number,
+    setCurrentPage: (page: number) => void
+  ) => {
+    const totalPages = getTotalPages(totalItems);
+    const paginatedCount =
+      Math.min(currentPage * ITEMS_PER_PAGE, totalItems) -
+      (currentPage - 1) * ITEMS_PER_PAGE;
+
+    return (
+      <div className="flex items-center justify-between px-2 py-4">
+        <p className="text-sm text-muted-foreground whitespace-nowrap">
+          Mostrando {paginatedCount} de {totalItems} resultados
+        </p>
+        {totalPages > 1 ? (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  className={
+                    currentPage === 1
+                      ? 'pointer-events-none opacity-50'
+                      : 'cursor-pointer'
+                  }
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
+                  className={
+                    currentPage === totalPages
+                      ? 'pointer-events-none opacity-50'
+                      : 'cursor-pointer'
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        ) : (
+          <div />
+        )}
+      </div>
+    );
   };
 
   const renderTable = (
@@ -452,6 +669,99 @@ export default function SystemConfigPage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleOpenDeleteDialog(type, item)}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  );
+
+  const renderAuthorsTable = (authors: Author[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>
+            <button
+              onClick={handleSortChange}
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              Nombre completo
+              {sortOrder === 'asc' ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : (
+                <ArrowDown className="h-4 w-4" />
+              )}
+            </button>
+          </TableHead>
+          <TableHead>País de origen</TableHead>
+          <TableHead>Fecha de nacimiento</TableHead>
+          <TableHead className="text-right">Acciones</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {authors.length === 0 ? (
+          <TableRow>
+            <TableCell
+              colSpan={4}
+              className="text-center py-8 text-muted-foreground"
+            >
+              No hay registros
+            </TableCell>
+          </TableRow>
+        ) : (
+          authors.map((author) => (
+            <TableRow key={author.id}>
+              <TableCell className="font-medium">
+                {`${author.firstName}${
+                  author.middleName ? ' ' + author.middleName : ''
+                } ${author.lastName}`}
+              </TableCell>
+              <TableCell>
+                {author.countryOfOrigin?.name || (
+                  <span className="text-muted-foreground italic">-</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {author.birthDate ? (
+                  new Date(author.birthDate).toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })
+                ) : (
+                  <span className="text-muted-foreground italic">-</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    handleOpenDialog('edit', 'author', {
+                      id: author.id,
+                      name: `${author.firstName}${
+                        author.middleName ? ' ' + author.middleName : ''
+                      } ${author.lastName}`,
+                    })
+                  }
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    handleOpenDeleteDialog('author', {
+                      id: author.id,
+                      name: `${author.firstName}${
+                        author.middleName ? ' ' + author.middleName : ''
+                      } ${author.lastName}`,
+                    })
+                  }
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
@@ -684,6 +994,43 @@ export default function SystemConfigPage() {
                     </div>
 
                     <div className="space-y-2">
+                      <Label htmlFor="reservationHoldDays">
+                        Días de espera de reservación
+                      </Label>
+                      <Input
+                        id="reservationHoldDays"
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={loanConfig.reservationHoldDays}
+                        onKeyDown={(e) => {
+                          if (
+                            e.key === '.' ||
+                            e.key === ',' ||
+                            e.key === 'e' ||
+                            e.key === 'E'
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onChange={(e) => {
+                          const value =
+                            e.target.value === ''
+                              ? ''
+                              : parseInt(e.target.value);
+                          setLoanConfig({
+                            ...loanConfig,
+                            reservationHoldDays: value as any,
+                          });
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Días que una reserva lista permanece disponible antes de
+                        expirar (1-30)
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="allowLoansWithFines">
@@ -741,8 +1088,37 @@ export default function SystemConfigPage() {
                 Agregar categoría
               </Button>
             </CardHeader>
-            <CardContent>{renderTable(categories, 'category')}</CardContent>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar categoría..."
+                  value={categorySearch}
+                  onChange={(e) => setCategorySearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              {(() => {
+                const filteredCategories = categories.filter((cat) =>
+                  cat.name.toLowerCase().includes(categorySearch.toLowerCase())
+                );
+                return renderTable(
+                  paginateItems(filteredCategories, currentPageCategories),
+                  'category'
+                );
+              })()}
+            </CardContent>
           </Card>
+          {(() => {
+            const filteredCategories = categories.filter((cat) =>
+              cat.name.toLowerCase().includes(categorySearch.toLowerCase())
+            );
+            return renderPagination(
+              filteredCategories.length,
+              currentPageCategories,
+              setCurrentPageCategories
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="countries">
@@ -759,8 +1135,39 @@ export default function SystemConfigPage() {
                 Agregar país
               </Button>
             </CardHeader>
-            <CardContent>{renderTable(countries, 'country')}</CardContent>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar país..."
+                  value={countrySearch}
+                  onChange={(e) => setCountrySearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              {(() => {
+                const filteredCountries = countries.filter((country) =>
+                  country.name
+                    .toLowerCase()
+                    .includes(countrySearch.toLowerCase())
+                );
+                return renderTable(
+                  paginateItems(filteredCountries, currentPageCountries),
+                  'country'
+                );
+              })()}
+            </CardContent>
           </Card>
+          {(() => {
+            const filteredCountries = countries.filter((country) =>
+              country.name.toLowerCase().includes(countrySearch.toLowerCase())
+            );
+            return renderPagination(
+              filteredCountries.length,
+              currentPageCountries,
+              setCurrentPageCountries
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="publishers">
@@ -777,8 +1184,41 @@ export default function SystemConfigPage() {
                 Agregar editorial
               </Button>
             </CardHeader>
-            <CardContent>{renderTable(publishers, 'publisher')}</CardContent>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar editorial..."
+                  value={publisherSearch}
+                  onChange={(e) => setPublisherSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              {(() => {
+                const filteredPublishers = publishers.filter((publisher) =>
+                  publisher.name
+                    .toLowerCase()
+                    .includes(publisherSearch.toLowerCase())
+                );
+                return renderTable(
+                  paginateItems(filteredPublishers, currentPagePublishers),
+                  'publisher'
+                );
+              })()}
+            </CardContent>
           </Card>
+          {(() => {
+            const filteredPublishers = publishers.filter((publisher) =>
+              publisher.name
+                .toLowerCase()
+                .includes(publisherSearch.toLowerCase())
+            );
+            return renderPagination(
+              filteredPublishers.length,
+              currentPagePublishers,
+              setCurrentPagePublishers
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="authors">
@@ -792,18 +1232,75 @@ export default function SystemConfigPage() {
                 </CardDescription>
               </div>
             </CardHeader>
-            <CardContent>
-              {renderTable(
-                authors.map((a) => ({
-                  id: a.id,
-                  name: `${a.firstName}${
-                    a.middleName ? ' ' + a.middleName : ''
-                  } ${a.lastName}`,
-                })),
-                'author'
-              )}
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar autor..."
+                    value={authorSearch}
+                    onChange={(e) => setAuthorSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select
+                  value={authorCountryFilter}
+                  onValueChange={setAuthorCountryFilter}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Todos los países" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los países</SelectItem>
+                    {countries.map((country) => (
+                      <SelectItem key={country.id} value={country.id}>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(() => {
+                const filteredAuthors = authors.filter((author) => {
+                  const fullName = `${author.firstName}${
+                    author.middleName ? ' ' + author.middleName : ''
+                  } ${author.lastName}`.toLowerCase();
+                  const matchesSearch = fullName.includes(
+                    authorSearch.toLowerCase()
+                  );
+                  const matchesCountry =
+                    !authorCountryFilter ||
+                    authorCountryFilter === 'all' ||
+                    author.countryOfOriginId === authorCountryFilter;
+                  return matchesSearch && matchesCountry;
+                });
+                return renderAuthorsTable(
+                  paginateItems(filteredAuthors, currentPageAuthors)
+                );
+              })()}
             </CardContent>
           </Card>
+          {(() => {
+            const filteredAuthors = authors.filter((author) => {
+              const fullName = `${author.firstName}${
+                author.middleName ? ' ' + author.middleName : ''
+              } ${author.lastName}`.toLowerCase();
+              const matchesSearch = fullName.includes(
+                authorSearch.toLowerCase()
+              );
+              const matchesCountry =
+                !authorCountryFilter ||
+                authorCountryFilter === 'all' ||
+                author.countryOfOriginId === authorCountryFilter;
+              return matchesSearch && matchesCountry;
+            });
+            return renderPagination(
+              filteredAuthors.length,
+              currentPageAuthors,
+              setCurrentPageAuthors
+            );
+          })()}
         </TabsContent>
       </Tabs>
 
@@ -829,17 +1326,184 @@ export default function SystemConfigPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ name: e.target.value })}
-                  placeholder="Ingresa el nombre"
-                  disabled={submitting}
-                  required
-                />
-              </div>
+              {dialogState.type === 'author' && dialogState.mode === 'edit' ? (
+                // Campos completos para editar autor
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">
+                        Primer nombre{' '}
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="firstName"
+                        value={formData.firstName || ''}
+                        onChange={(e) => {
+                          setFormData({
+                            ...formData,
+                            firstName: e.target.value,
+                          });
+                          if (formErrors.firstName) {
+                            setFormErrors({
+                              ...formErrors,
+                              firstName: undefined,
+                            });
+                          }
+                        }}
+                        placeholder="Gabriel"
+                        disabled={submitting}
+                      />
+                      {formErrors.firstName && (
+                        <p className="text-sm text-destructive">
+                          {formErrors.firstName}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="middleName">
+                        Segundo nombre{' '}
+                        <span className="text-muted-foreground text-xs font-normal">
+                          (opcional)
+                        </span>
+                      </Label>
+                      <Input
+                        id="middleName"
+                        value={formData.middleName || ''}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            middleName: e.target.value,
+                          })
+                        }
+                        placeholder="García"
+                        disabled={submitting}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">
+                      Apellido(s) <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="lastName"
+                      value={formData.lastName || ''}
+                      onChange={(e) => {
+                        setFormData({ ...formData, lastName: e.target.value });
+                        if (formErrors.lastName) {
+                          setFormErrors({ ...formErrors, lastName: undefined });
+                        }
+                      }}
+                      placeholder="Márquez"
+                      disabled={submitting}
+                    />
+                    {formErrors.lastName && (
+                      <p className="text-sm text-destructive">
+                        {formErrors.lastName}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="countryOfOriginId">País de origen</Label>
+                      <div className="flex gap-2 items-center">
+                        <div className="flex-1 min-w-0">
+                          <Select
+                            value={formData.countryOfOriginId || ''}
+                            onValueChange={(value) =>
+                              setFormData({
+                                ...formData,
+                                countryOfOriginId: value,
+                              })
+                            }
+                            disabled={submitting}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Seleccionar país" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {countries.map((country) => (
+                                <SelectItem key={country.id} value={country.id}>
+                                  {country.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {formData.countryOfOriginId && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                countryOfOriginId: undefined,
+                              })
+                            }
+                            disabled={submitting}
+                            className="shrink-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="birthDate">Fecha de nacimiento</Label>
+                      <div className="flex gap-2 items-center">
+                        <div className="flex-1 min-w-0">
+                          <DatePicker
+                            value={formData.birthDate || ''}
+                            onChange={(value: string | undefined) =>
+                              setFormData({
+                                ...formData,
+                                birthDate: value || undefined,
+                              })
+                            }
+                            placeholder="Seleccionar fecha"
+                            disabled={submitting}
+                            fromYear={1100}
+                            toYear={new Date().getFullYear()}
+                          />
+                        </div>
+                        {formData.birthDate && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setFormData({ ...formData, birthDate: undefined })
+                            }
+                            disabled={submitting}
+                            className="shrink-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Campo simple para categorías, países y editoriales
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nombre</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder="Ingresa el nombre"
+                    disabled={submitting}
+                    required
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button

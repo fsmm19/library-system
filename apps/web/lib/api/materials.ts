@@ -158,8 +158,8 @@ export const materialsApi = {
       firstName?: string;
       middleName?: string;
       lastName?: string;
-      countryOfOriginId?: string;
-      birthDate?: string;
+      countryOfOriginId?: string | null;
+      birthDate?: string | null;
     },
     token: string
   ): Promise<Author> {

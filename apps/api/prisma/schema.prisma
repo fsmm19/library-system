@@ -10,19 +10,22 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(uuid()) @db.Uuid
-  email        String    @unique @db.VarChar(255)
-  passwordHash String    @db.VarChar(255)
-  role         Role
-  firstName    String    @db.VarChar(100)
-  middleName   String?   @db.VarChar(100)
-  lastName     String    @db.VarChar(100)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String    @db.VarChar(255)
+  role          Role
+  firstName     String    @db.VarChar(100)
+  middleName    String?   @db.VarChar(100)
+  lastName      String    @db.VarChar(100)
+  theme         Theme     @default(SYSTEM)
+  notifications Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
-  member    Member?
-  librarian Librarian?
+  member            Member?
+  librarian         Librarian?
+  userNotifications Notification[]
 
   @@index([email])
   @@index([role])
@@ -59,6 +62,12 @@ model Librarian {
 enum Role {
   MEMBER
   LIBRARIAN
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
 }
 
 enum AccountState {
@@ -298,6 +307,7 @@ model LoanConfiguration {
   gracePeriodDays     Int      @default(0)
   dailyFineAmount     Float    @default(1.0) @db.DoublePrecision
   allowLoansWithFines Boolean  @default(false)
+  reservationHoldDays Int      @default(3)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -332,4 +342,32 @@ model Reservation {
   @@index([status])
   @@index([reservationDate])
   @@map("reservations")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  type      NotificationType
+  title     String           @db.VarChar(255)
+  message   String           @db.Text
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  LOAN_DUE_SOON
+  LOAN_OVERDUE
+  RESERVATION_READY
+  RESERVATION_EXPIRED
+  FINE_ISSUED
+  ACCOUNT_SUSPENDED
+  GENERAL
 }

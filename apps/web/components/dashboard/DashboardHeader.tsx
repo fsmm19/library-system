@@ -1,4 +1,6 @@
-import { Bell, LogOut, User, Settings, Menu } from 'lucide-react';
+'use client';
+
+import { Bell, LogOut, User, Settings, Menu, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
@@ -13,6 +15,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useState } from 'react';
+import { notificationsApi } from '@/lib/api/notifications';
+import { Notification } from '@library/types';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface DashboardHeaderProps {
   userName: string;
@@ -27,7 +33,99 @@ export default function DashboardHeader({
 }: DashboardHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, token, user } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+
+  const loadNotifications = async () => {
+    if (!token || !user?.notifications) return;
+
+    try {
+      setIsLoadingNotifications(true);
+      const [notifs, countData] = await Promise.all([
+        notificationsApi.getNotifications(token, false),
+        notificationsApi.getUnreadCount(token),
+      ]);
+      setNotifications(notifs);
+      setUnreadCount(countData.count);
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+    // Reload notifications every 30 seconds
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [token, user?.notifications]);
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    if (!token) return;
+
+    try {
+      await notificationsApi.markAsRead(notificationId, token);
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notificationId
+            ? { ...n, isRead: true, readAt: new Date().toISOString() }
+            : n
+        )
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      toast.error('Error al marcar como leída');
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!token) return;
+
+    try {
+      await notificationsApi.markAllAsRead(token);
+      setNotifications((prev) =>
+        prev.map((n) => ({
+          ...n,
+          isRead: true,
+          readAt: new Date().toISOString(),
+        }))
+      );
+      setUnreadCount(0);
+      toast.success('Todas las notificaciones marcadas como leídas');
+    } catch (error) {
+      toast.error('Error al marcar como leídas');
+    }
+  };
+
+  const getNotificationTitle = (type: string): string => {
+    const titles: Record<string, string> = {
+      LOAN_DUE_SOON: 'Préstamo próximo a vencer',
+      LOAN_OVERDUE: 'Préstamo vencido',
+      RESERVATION_READY: 'Reserva lista',
+      RESERVATION_EXPIRED: 'Reserva expirada',
+      FINE_ISSUED: 'Multa emitida',
+      ACCOUNT_SUSPENDED: 'Cuenta suspendida',
+      GENERAL: 'Notificación',
+    };
+    return titles[type] || 'Notificación';
+  };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return 'Ahora';
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `Hace ${diffHours}h`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `Hace ${diffDays}d`;
+  };
 
   const handleLogout = () => {
     logout();
@@ -147,41 +245,92 @@ export default function DashboardHeader({
 
       <div className="ml-auto flex items-center gap-2">
         {/* Notifications */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                3
-              </Badge>
-              <span className="sr-only">Notificaciones</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className="space-y-2 p-2">
-              <div className="rounded-lg bg-accent/50 p-3 text-sm">
-                <p className="font-medium">Préstamo vencido</p>
-                <p className="text-muted-foreground text-xs mt-1">
-                  Hay prestamos que requieren atención
-                </p>
+        {user?.notifications && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Badge>
+                )}
+                <span className="sr-only">Notificaciones</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80">
+              <div className="flex items-center justify-between px-2 py-1.5">
+                <DropdownMenuLabel className="p-0">
+                  Notificaciones
+                </DropdownMenuLabel>
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto py-1 px-2 text-xs"
+                    onClick={handleMarkAllAsRead}
+                  >
+                    <Check className="h-3 w-3 mr-1" />
+                    Marcar todas
+                  </Button>
+                )}
               </div>
-              <div className="rounded-lg bg-accent/50 p-3 text-sm">
-                <p className="font-medium">Nuevo usuario registrado</p>
-                <p className="text-muted-foreground text-xs mt-1">
-                  Un nuevo miembro se ha registrado en el sistema
-                </p>
-              </div>
-              <div className="rounded-lg bg-accent/50 p-3 text-sm">
-                <p className="font-medium">Material bajo stock</p>
-                <p className="text-muted-foreground text-xs mt-1">
-                  Algunos materiales necesitan reposición
-                </p>
-              </div>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuSeparator />
+              {isLoadingNotifications ? (
+                <div className="flex items-center justify-center p-8">
+                  <p className="text-sm text-muted-foreground">Cargando...</p>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-8">
+                  <Bell className="h-12 w-12 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    No hay notificaciones
+                  </p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-1 p-1">
+                    {notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className={`rounded-lg p-3 text-sm cursor-pointer transition-colors ${
+                          notification.isRead
+                            ? 'bg-background hover:bg-accent/50'
+                            : 'bg-accent hover:bg-accent/70'
+                        }`}
+                        onClick={() =>
+                          !notification.isRead &&
+                          handleMarkAsRead(notification.id)
+                        }
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">
+                              {getNotificationTitle(notification.type)}
+                            </p>
+                            <p className="text-muted-foreground text-xs mt-1 line-clamp-2">
+                              {notification.message}
+                            </p>
+                          </div>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {formatDate(notification.createdAt)}
+                          </span>
+                        </div>
+                        {!notification.isRead && (
+                          <div className="mt-2">
+                            <Badge variant="secondary" className="text-xs">
+                              Nueva
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
         {/* User Menu */}
         <DropdownMenu>

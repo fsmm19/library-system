@@ -57,6 +57,7 @@ export interface LoanConfiguration {
   gracePeriodDays: number;
   dailyFineAmount: number;
   allowLoansWithFines: boolean;
+  reservationHoldDays: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -100,6 +101,7 @@ export interface UpdateLoanConfigurationData {
   gracePeriodDays?: number;
   dailyFineAmount?: number;
   allowLoansWithFines?: boolean;
+  reservationHoldDays?: number;
 }
 
 export interface GetLoansParams {

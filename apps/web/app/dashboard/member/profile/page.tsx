@@ -1,267 +1,158 @@
 'use client';
 
-import { useState } from 'react';
-import { User, Lock } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useEffect, useState } from 'react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+  ChangePasswordFormData,
+  PersonalInfoFormData,
+} from '@/lib/schemas/profile-schemas';
+import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Settings, Shield, UserIcon } from 'lucide-react';
+import { PersonalInfoSection } from '@/components/profile/PersonalInfoSection';
+import { SecuritySection } from '@/components/profile/SecuritySection';
+import { PreferencesSection } from '@/components/profile/PreferencesSection';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { usersApi } from '@/lib/api/users';
+import { User } from '@library/types';
 
-export default function MemberProfilePage() {
-  const { user } = useAuth();
-  const [isUpdating, setIsUpdating] = useState(false);
+export default function ProfilePage() {
+  const {
+    user: authUser,
+    token,
+    isLoading,
+    isAuthenticated,
+    updateUser,
+  } = useAuth();
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
 
-  const [personalInfo, setPersonalInfo] = useState({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    email: user?.email || '',
-    phone: '',
-    address: '',
-  });
-
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-
-  const handleUpdatePersonalInfo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsUpdating(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsUpdating(false);
-      toast.success('Información personal actualizada correctamente');
-    }, 1000);
-  };
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error('Las contraseñas no coinciden');
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/auth');
       return;
     }
 
-    setIsUpdating(true);
+    if (authUser) {
+      setUser(authUser);
+    }
+  }, [authUser, isLoading, isAuthenticated, router]);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsUpdating(false);
-      setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-      toast.success('Contraseña actualizada correctamente');
-    }, 1000);
+  const handleUpdatePersonalInfo = async (data: PersonalInfoFormData) => {
+    if (!user || !token) return;
+
+    try {
+      const updatedUser = await usersApi.updateProfile(
+        {
+          firstName: data.firstName,
+          middleName: data.middleName || null,
+          lastName: data.lastName,
+        },
+        token
+      );
+
+      setUser(updatedUser);
+    } catch (error) {
+      throw error;
+    }
   };
 
-  const userName = `${user?.firstName} ${user?.lastName}`;
-  const userInitials = (() => {
-    const parts = userName.trim().split(' ');
-    if (parts.length === 1) return parts[0][0].toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  })();
+  const handleChangePassword = async (data: ChangePasswordFormData) => {
+    if (!token) return;
+
+    try {
+      await usersApi.changePassword(
+        {
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+        },
+        token
+      );
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleUpdatePreferences = async (data: {
+    theme: string;
+    notifications: boolean;
+  }) => {
+    if (!token) return;
+
+    try {
+      await usersApi.updatePreferences(data, token);
+
+      // Recargar la página para aplicar el nuevo tema
+      window.location.reload();
+    } catch (error) {
+      console.error('Error al actualizar preferencias:', error);
+      throw error;
+    }
+  };
+
+  if (isLoading || !user) {
+    return (
+      <div className="container py-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Cargando perfil...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="container py-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Mi perfil</h1>
-        <p className="text-muted-foreground mt-1">
-          Gestiona tu información personal y configuración de cuenta
+        <h1 className="text-3xl font-bold tracking-tight">Mi perfil</h1>
+        <p className="text-muted-foreground">
+          Gestiona tu información personal y preferencias de seguridad
         </p>
       </div>
 
-      {/* Profile Header */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                {userInitials}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="text-2xl font-bold">{userName}</h2>
-              <p className="text-muted-foreground">{user?.email}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <ProfileHeader user={user} />
 
-      {/* Tabs */}
       <Tabs defaultValue="personal" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="personal">
-            <User className="h-4 w-4 mr-2" />
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="personal" className="gap-2">
+            <UserIcon className="h-4 w-4" />
             Información personal
           </TabsTrigger>
-          <TabsTrigger value="security">
-            <Lock className="h-4 w-4 mr-2" />
+          <TabsTrigger value="security" className="gap-2">
+            <Shield className="h-4 w-4" />
             Seguridad
+          </TabsTrigger>
+          <TabsTrigger value="preferences" className="gap-2">
+            <Settings className="h-4 w-4" />
+            Preferencias
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="personal">
-          <Card>
-            <CardHeader>
-              <CardTitle>Información personal</CardTitle>
-              <CardDescription>
-                Actualiza tu información personal y de contacto
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleUpdatePersonalInfo} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">Nombre</Label>
-                    <Input
-                      id="firstName"
-                      value={personalInfo.firstName}
-                      onChange={(e) =>
-                        setPersonalInfo({
-                          ...personalInfo,
-                          firstName: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Apellido</Label>
-                    <Input
-                      id="lastName"
-                      value={personalInfo.lastName}
-                      onChange={(e) =>
-                        setPersonalInfo({
-                          ...personalInfo,
-                          lastName: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Correo electrónico</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={personalInfo.email}
-                    onChange={(e) =>
-                      setPersonalInfo({
-                        ...personalInfo,
-                        email: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={personalInfo.phone}
-                    onChange={(e) =>
-                      setPersonalInfo({
-                        ...personalInfo,
-                        phone: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Dirección</Label>
-                  <Input
-                    id="address"
-                    value={personalInfo.address}
-                    onChange={(e) =>
-                      setPersonalInfo({
-                        ...personalInfo,
-                        address: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <Button type="submit" disabled={isUpdating}>
-                  {isUpdating ? 'Guardando...' : 'Guardar cambios'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+        <TabsContent value="personal" className="space-y-6">
+          <PersonalInfoSection
+            user={user}
+            onUpdate={handleUpdatePersonalInfo}
+          />
         </TabsContent>
 
-        <TabsContent value="security">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cambiar contraseña</CardTitle>
-              <CardDescription>
-                Actualiza tu contraseña para mantener tu cuenta segura
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleChangePassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Contraseña actual</Label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    value={passwordForm.currentPassword}
-                    onChange={(e) =>
-                      setPasswordForm({
-                        ...passwordForm,
-                        currentPassword: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">Nueva contraseña</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={passwordForm.newPassword}
-                    onChange={(e) =>
-                      setPasswordForm({
-                        ...passwordForm,
-                        newPassword: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">
-                    Confirmar nueva contraseña
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={passwordForm.confirmPassword}
-                    onChange={(e) =>
-                      setPasswordForm({
-                        ...passwordForm,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <Button type="submit" disabled={isUpdating}>
-                  {isUpdating ? 'Actualizando...' : 'Cambiar contraseña'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+        <TabsContent value="security" className="space-y-6">
+          <SecuritySection onChangePassword={handleChangePassword} />
+        </TabsContent>
+
+        <TabsContent value="preferences" className="space-y-6">
+          <PreferencesSection
+            initialPreferences={{
+              theme:
+                (authUser?.theme?.toLowerCase() as
+                  | 'light'
+                  | 'dark'
+                  | 'system') || 'system',
+              language: 'es',
+              dateFormat: 'DD/MM/YYYY',
+              timezone: 'America/Santiago',
+              notifications: authUser?.notifications ?? true,
+            }}
+            onUpdate={handleUpdatePreferences}
+          />
         </TabsContent>
       </Tabs>
     </div>

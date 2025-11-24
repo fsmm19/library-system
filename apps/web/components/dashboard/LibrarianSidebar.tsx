@@ -1,14 +1,15 @@
 import { NavLink } from '@/components/NavLink';
 import {
   BarChart3,
+  Calendar,
+  Copy,
+  DollarSign,
+  Database,
   FileText,
   Home,
   Package,
   Users,
-  Copy,
   BookOpen,
-  DollarSign,
-  Database,
 } from 'lucide-react';
 
 const navigation = [
@@ -17,6 +18,11 @@ const navigation = [
   { name: 'Materiales', href: '/dashboard/librarian/materials', icon: Package },
   { name: 'Copias', href: '/dashboard/librarian/copies', icon: Copy },
   { name: 'Préstamos', href: '/dashboard/librarian/loans', icon: FileText },
+  {
+    name: 'Reservaciones',
+    href: '/dashboard/librarian/reservations',
+    icon: Calendar,
+  },
   { name: 'Multas', href: '/dashboard/librarian/fines', icon: DollarSign },
   { name: 'Reportes', href: '/dashboard/librarian/reports', icon: BarChart3 },
   { name: 'Sistema', href: '/dashboard/librarian/system', icon: Database },
