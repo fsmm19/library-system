@@ -69,7 +69,9 @@ export function DatePicker({
           disabled={disabled}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date && !isNaN(date.getTime()) ? format(date, 'dd/MM/yyyy') : placeholder}
+          {date && !isNaN(date.getTime())
+            ? format(date, 'dd/MM/yyyy')
+            : placeholder}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -81,6 +83,7 @@ export function DatePicker({
           captionLayout="dropdown"
           fromYear={fromYear}
           toYear={toYear}
+          defaultMonth={date}
         />
       </PopoverContent>
     </Popover>

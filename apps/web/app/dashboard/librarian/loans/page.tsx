@@ -242,7 +242,7 @@ export default function LoansPage() {
                           {loan.copy.material.title}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          ID: {loan.copy.id.substring(0, 8)}
+                          Código: {loan.copy.catalogCode}
                         </p>
                       </div>
                     </TableCell>

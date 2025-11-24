@@ -20,9 +20,7 @@ import { Role } from 'generated/prisma/enums';
 
 @Controller('material-copies')
 export class MaterialCopiesController {
-  constructor(
-    private readonly materialCopiesService: MaterialCopiesService,
-  ) {}
+  constructor(private readonly materialCopiesService: MaterialCopiesService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)

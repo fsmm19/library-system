@@ -135,7 +135,7 @@ export default function CreateLoanDialog({
 
   const copyOptions = (copies || []).map((copy) => ({
     value: copy.id,
-    label: `${copy.material.title} - ${copy.id.substring(0, 8)}`,
+    label: `${copy.material.title} (${copy.catalogCode})`,
   }));
 
   return (
@@ -183,7 +183,7 @@ export default function CreateLoanDialog({
                     value={field.value}
                     onValueChange={field.onChange}
                     placeholder="Seleccionar copia"
-                    searchPlaceholder="Buscar material..."
+                    searchPlaceholder="Buscar copia de material..."
                     emptyText="No hay copias disponibles"
                   />
                 )}

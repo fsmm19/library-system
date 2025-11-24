@@ -83,7 +83,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 border-r bg-card lg:block">
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-56 border-r bg-card lg:block">
         <SidebarContent />
       </aside>
 
@@ -95,7 +95,7 @@ export default function DashboardLayout({
       </Sheet>
 
       {/* Main Content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-56">
         {/* Header */}
         <DashboardHeader
           userRole={user.role}

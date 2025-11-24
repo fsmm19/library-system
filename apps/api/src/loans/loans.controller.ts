@@ -61,9 +61,13 @@ export class LoansController {
   @Roles(Role.LIBRARIAN)
   returnLoan(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: { returnDate?: string },
+    @Body() body: { returnDate?: string; condition?: string },
   ) {
-    return this.loansService.returnLoan(id, body.returnDate);
+    return this.loansService.returnLoan(
+      id,
+      body.returnDate,
+      body.condition as any,
+    );
   }
 
   @Post(':id/renew')

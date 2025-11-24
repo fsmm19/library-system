@@ -3,6 +3,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { MaterialCopyFactory } from './factories/material-copy.factory';
 import { CreateMaterialCopyDto } from './dto/create-material-copy.dto';
 import { UpdateMaterialCopyDto } from './dto/update-material-copy.dto';
+import { BadRequestException } from '@nestjs/common';
+import { MaterialCopyCondition } from 'generated/prisma/enums';
 
 @Injectable()
 export class MaterialCopiesService {
@@ -17,9 +19,6 @@ export class MaterialCopiesService {
 
   async findAll() {
     return this.prisma.materialCopy.findMany({
-      where: {
-        deletedAt: null,
-      },
       include: {
         material: {
           include: {
@@ -38,7 +37,6 @@ export class MaterialCopiesService {
     return this.prisma.materialCopy.findMany({
       where: {
         materialId,
-        deletedAt: null,
       },
       include: {
         material: {
@@ -64,6 +62,18 @@ export class MaterialCopiesService {
             book: true,
           },
         },
+        loans: {
+          include: {
+            member: {
+              include: {
+                user: true,
+              },
+            },
+          },
+          orderBy: {
+            loanDate: 'desc',
+          },
+        },
       },
     });
 
@@ -76,7 +86,28 @@ export class MaterialCopiesService {
 
   async update(id: string, updateMaterialCopyDto: UpdateMaterialCopyDto) {
     // Verify copy exists
-    await this.findOne(id);
+    const existingCopy = await this.findOne(id);
+
+    // If trying to mark as LOST, check for active loans
+    if (
+      updateMaterialCopyDto.condition === MaterialCopyCondition.LOST &&
+      existingCopy.condition !== MaterialCopyCondition.LOST
+    ) {
+      const activeLoans = await this.prisma.loan.count({
+        where: {
+          copyId: id,
+          status: {
+            in: ['ACTIVE', 'OVERDUE'],
+          },
+        },
+      });
+
+      if (activeLoans > 0) {
+        throw new BadRequestException(
+          'No se puede marcar como perdido una copia con préstamos activos. Por favor, gestione primero el préstamo activo.',
+        );
+      }
+    }
 
     return this.prisma.materialCopy.update({
       where: { id },
@@ -105,12 +136,41 @@ export class MaterialCopiesService {
     // Verify copy exists
     await this.findOne(id);
 
-    // Soft delete
-    return this.prisma.materialCopy.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
+    // Check if copy has any loans (to preserve historical data)
+    const loansCount = await this.prisma.loan.count({
+      where: {
+        copyId: id,
       },
+    });
+
+    // Check if copy has any reservations
+    const reservationsCount = await this.prisma.reservation.count({
+      where: {
+        copyId: id,
+      },
+    });
+
+    if (loansCount > 0 && reservationsCount > 0) {
+      throw new BadRequestException(
+        'No se puede eliminar una copia con préstamos y reservaciones asociadas',
+      );
+    }
+
+    if (loansCount > 0) {
+      throw new BadRequestException(
+        'No se puede eliminar una copia con préstamos asociados',
+      );
+    }
+
+    if (reservationsCount > 0) {
+      throw new BadRequestException(
+        'No se puede eliminar una copia con reservaciones asociadas',
+      );
+    }
+
+    // Hard delete
+    return this.prisma.materialCopy.delete({
+      where: { id },
       include: {
         material: {
           include: {
@@ -127,7 +187,6 @@ export class MaterialCopiesService {
       where: {
         materialId,
         status: 'AVAILABLE',
-        deletedAt: null,
       },
     });
   }
@@ -136,7 +195,9 @@ export class MaterialCopiesService {
     return this.prisma.materialCopy.count({
       where: {
         materialId,
-        deletedAt: null,
+        status: {
+          not: 'REMOVED',
+        },
       },
     });
   }

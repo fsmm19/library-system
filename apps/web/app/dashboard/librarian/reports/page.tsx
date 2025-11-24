@@ -286,7 +286,7 @@ export default function ReportsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Total Usuarios
+                  Total usuarios
                 </CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -301,7 +301,7 @@ export default function ReportsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Total Materiales
+                  Total materiales
                 </CardTitle>
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -316,7 +316,7 @@ export default function ReportsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Préstamos Activos
+                  Préstamos activos
                 </CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -331,7 +331,7 @@ export default function ReportsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Duración Promedio
+                  Duración promedio
                 </CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -349,7 +349,7 @@ export default function ReportsPage() {
           {/* Monthly Trends */}
           <Card>
             <CardHeader>
-              <CardTitle>Tendencias Mensuales</CardTitle>
+              <CardTitle>Tendencias mensuales</CardTitle>
               <CardDescription>
                 Actividad del sistema en los últimos 6 meses
               </CardDescription>
@@ -394,7 +394,7 @@ export default function ReportsPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle>Préstamos Activos</CardTitle>
+                <CardTitle>Préstamos activos</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-blue-600">
@@ -408,7 +408,7 @@ export default function ReportsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Préstamos Vencidos</CardTitle>
+                <CardTitle>Préstamos vencidos</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-red-600">
@@ -422,7 +422,7 @@ export default function ReportsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Préstamos Completados</CardTitle>
+                <CardTitle>Préstamos completados</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-green-600">
@@ -437,7 +437,7 @@ export default function ReportsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Materiales Más Prestados</CardTitle>
+              <CardTitle>Materiales más prestados</CardTitle>
               <CardDescription>
                 Top 10 materiales con más préstamos
               </CardDescription>
@@ -475,7 +475,7 @@ export default function ReportsPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle>Copias Disponibles</CardTitle>
+                <CardTitle>Copias disponibles</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-green-600">
@@ -489,7 +489,7 @@ export default function ReportsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Copias Prestadas</CardTitle>
+                <CardTitle>Copias prestadas</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-blue-600">
@@ -503,7 +503,7 @@ export default function ReportsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Tasa de Utilización</CardTitle>
+                <CardTitle>Tasa de utilización</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-purple-600">
@@ -523,7 +523,7 @@ export default function ReportsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Distribución por Tipo de Material</CardTitle>
+              <CardTitle>Distribución por tipo de material</CardTitle>
               <CardDescription>
                 Cantidad y porcentaje de materiales por categoría
               </CardDescription>
@@ -567,7 +567,7 @@ export default function ReportsPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle>Miembros Activos</CardTitle>
+                <CardTitle>Miembros activos</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-green-600">
@@ -581,7 +581,7 @@ export default function ReportsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Miembros Suspendidos</CardTitle>
+                <CardTitle>Miembros suspendidos</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-red-600">
@@ -595,7 +595,7 @@ export default function ReportsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Total de Usuarios</CardTitle>
+                <CardTitle>Total de usuarios</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-blue-600">
@@ -610,7 +610,7 @@ export default function ReportsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Nuevos Usuarios por Mes</CardTitle>
+              <CardTitle>Nuevos usuarios por mes</CardTitle>
               <CardDescription>
                 Registro de nuevos usuarios en los últimos 6 meses
               </CardDescription>

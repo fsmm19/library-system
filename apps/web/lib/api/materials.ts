@@ -152,6 +152,38 @@ export const materialsApi = {
     return handleResponse<Author[]>(response);
   },
 
+  async updateAuthor(
+    id: string,
+    data: {
+      firstName?: string;
+      middleName?: string;
+      lastName?: string;
+      countryOfOriginId?: string;
+      birthDate?: string;
+    },
+    token: string
+  ): Promise<Author> {
+    const response = await fetch(`${API_URL}/materials/authors/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<Author>(response);
+  },
+
+  async deleteAuthor(id: string, token: string): Promise<Author> {
+    const response = await fetch(`${API_URL}/materials/authors/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handleResponse<Author>(response);
+  },
+
   async getAllCategories(token?: string): Promise<Category[]> {
     const headers: HeadersInit = {};
     if (token) {

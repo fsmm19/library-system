@@ -49,10 +49,6 @@ const addCopySchema = z.object({
     .string()
     .max(255, 'El código de barras no puede exceder 255 caracteres')
     .optional(),
-  catalogCode: z
-    .string()
-    .max(255, 'El código de catálogo no puede exceder 255 caracteres')
-    .optional(),
 });
 
 type AddCopyFormData = z.infer<typeof addCopySchema>;
@@ -106,7 +102,6 @@ export default function AddCopyDialog({
       status: MaterialCopyStatus.AVAILABLE,
       location: '',
       barcode: '',
-      catalogCode: '',
     },
   });
 
@@ -195,25 +190,33 @@ export default function AddCopyDialog({
                 render={({ field }) => (
                   <Combobox
                     options={materials.map((material) => {
-                      const authorsText =
-                        material.authors && material.authors.length > 0
-                          ? material.authors
-                              .map((author) =>
-                                `${author.firstName} ${author.lastName}`.trim()
-                              )
-                              .join(', ')
-                          : '';
+                      // Build compact identifier
+                      let identifier = material.title;
+
+                      // Add year or ISBN as short identifier
+                      if (material.book?.isbn13) {
+                        identifier += ` (${material.book.isbn13})`;
+                      } else if (material.publishedDate) {
+                        identifier += ` (${new Date(
+                          material.publishedDate
+                        ).getFullYear()})`;
+                      } else if (
+                        material.authors &&
+                        material.authors.length > 0
+                      ) {
+                        // If no year or ISBN, show first author's last name
+                        identifier += ` (${material.authors[0].lastName})`;
+                      }
+
                       return {
                         value: material.id,
-                        label: `${material.title}${
-                          authorsText ? ` - ${authorsText}` : ''
-                        }`,
+                        label: identifier,
                       };
                     })}
                     value={field.value}
                     onValueChange={field.onChange}
                     placeholder="Buscar y seleccionar material..."
-                    searchPlaceholder="Buscar por título o autor(es)..."
+                    searchPlaceholder="Buscar por título o ISBN..."
                     emptyText="No se encontró ningún material."
                     disabled={isSubmitting || loadingMaterials}
                   />
@@ -327,22 +330,23 @@ export default function AddCopyDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="location">Ubicación</Label>
-            <Input
-              id="location"
-              placeholder="Estante A1, Nivel 1"
-              disabled={isSubmitting}
-              {...register('location')}
-            />
-            {errors.location && (
-              <p className="text-sm text-destructive">
-                {errors.location.message}
-              </p>
-            )}
-          </div>
-
+          {/* Location and Barcode */}
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="location">Ubicación</Label>
+              <Input
+                id="location"
+                placeholder="Estante A1, Nivel 1"
+                disabled={isSubmitting}
+                {...register('location')}
+              />
+              {errors.location && (
+                <p className="text-sm text-destructive">
+                  {errors.location.message}
+                </p>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="barcode">Código de barras</Label>
               <Input
@@ -354,21 +358,6 @@ export default function AddCopyDialog({
               {errors.barcode && (
                 <p className="text-sm text-destructive">
                   {errors.barcode.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="catalogCode">Código de catálogo</Label>
-              <Input
-                id="catalogCode"
-                placeholder="LIB-001"
-                disabled={isSubmitting}
-                {...register('catalogCode')}
-              />
-              {errors.catalogCode && (
-                <p className="text-sm text-destructive">
-                  {errors.catalogCode.message}
                 </p>
               )}
             </div>

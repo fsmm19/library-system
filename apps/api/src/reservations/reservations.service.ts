@@ -65,7 +65,6 @@ export class ReservationsService {
       where: {
         materialId,
         status: MaterialCopyStatus.AVAILABLE,
-        deletedAt: null,
       },
     });
 
@@ -245,7 +244,7 @@ export class ReservationsService {
         where: { id: copyId },
       });
 
-      if (!copy || copy.deletedAt) {
+      if (!copy) {
         throw new NotFoundException('Copy not found');
       }
 
@@ -446,7 +445,6 @@ export class ReservationsService {
       where: {
         materialId,
         status: MaterialCopyStatus.AVAILABLE,
-        deletedAt: null,
       },
     });
 

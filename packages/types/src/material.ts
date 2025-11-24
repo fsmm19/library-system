@@ -90,7 +90,7 @@ export interface CreateAuthorData {
 export interface CreateBookData {
   isbn13?: string;
   edition?: string;
-  numberOfPages?: number;
+  numberOfPages?: number | null;
   publisherId?: string;
 }
 
@@ -100,7 +100,7 @@ export interface CreateMaterialData {
   description?: string;
   type: MaterialType;
   language: Language;
-  publishedDate?: string;
+  publishedDate?: string | null;
   authors: CreateAuthorData[];
   categories?: CreateCategoryData[];
   book?: CreateBookData;

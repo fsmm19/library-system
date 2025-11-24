@@ -43,7 +43,11 @@ export const newAuthorSchema = z.object({
       /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
       'El apellido solo puede contener letras y espacios'
     ),
-  countryOfOriginId: z.string().uuid('ID de país inválido').optional().or(z.literal('')),
+  countryOfOriginId: z
+    .string()
+    .uuid('ID de país inválido')
+    .optional()
+    .or(z.literal('')),
   birthDate: z.string().optional(),
 });
 
@@ -66,8 +70,13 @@ export const bookSchema = z.object({
     .int('El número de páginas debe ser un entero')
     .positive('El número de páginas debe ser positivo')
     .optional()
-    .nullable(),
-  publisherId: z.string().uuid('ID de editorial inválido').optional().or(z.literal('')),
+    .nullable()
+    .or(z.nan().transform(() => undefined)),
+  publisherId: z
+    .string()
+    .uuid('ID de editorial inválido')
+    .optional()
+    .or(z.literal('')),
 });
 
 // Schema para agregar material tipo libro

@@ -1,6 +1,7 @@
 'use client';
 
 import AddMaterialDialog from '@/components/dashboard/materials/AddMaterialDialog';
+import EditMaterialDialog from '@/components/dashboard/materials/EditMaterialDialog';
 import MaterialDetailsSheet, {
   MaterialWithStatus,
 } from '@/components/dashboard/materials/MaterialDetailsSheet';
@@ -71,6 +72,7 @@ export default function MaterialsPage() {
     useState<MaterialWithStatus | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [materialToDelete, setMaterialToDelete] =
     useState<MaterialWithStatus | null>(null);
   const [materialToEdit, setMaterialToEdit] =
@@ -94,6 +96,13 @@ export default function MaterialsPage() {
         response.materials.map((material) => ({
           ...material,
           description: material.description ?? undefined,
+          authors: material.authors
+            ? [...material.authors].sort((a, b) => {
+                const nameA = `${a.lastName} ${a.firstName}`.toLowerCase();
+                const nameB = `${b.lastName} ${b.firstName}`.toLowerCase();
+                return nameA.localeCompare(nameB);
+              })
+            : material.authors,
         }))
       );
     } catch (error) {
@@ -126,12 +135,14 @@ export default function MaterialsPage() {
         material.book.isbn13.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesType = typeFilter === 'all' || material.type === typeFilter;
-    
-    const matchesCategory = 
-      categoryFilter === 'all' || 
-      (material.categories && material.categories.some(cat => cat.id === categoryFilter));
-    
-    const matchesLanguage = languageFilter === 'all' || material.language === languageFilter;
+
+    const matchesCategory =
+      categoryFilter === 'all' ||
+      (material.categories &&
+        material.categories.some((cat) => cat.id === categoryFilter));
+
+    const matchesLanguage =
+      languageFilter === 'all' || material.language === languageFilter;
 
     return matchesSearch && matchesType && matchesCategory && matchesLanguage;
   });
@@ -153,7 +164,7 @@ export default function MaterialsPage() {
         const authorB = b.authors?.[0]
           ? `${b.authors[0].firstName} ${b.authors[0].lastName}`
           : '';
-        
+
         // Handle empty values: put them at the end in ascending order
         if (!authorA && !authorB) {
           compareValue = 0;
@@ -167,9 +178,13 @@ export default function MaterialsPage() {
         break;
       }
       case 'publishedDate': {
-        const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : null;
-        const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : null;
-        
+        const dateA = a.publishedDate
+          ? new Date(a.publishedDate).getTime()
+          : null;
+        const dateB = b.publishedDate
+          ? new Date(b.publishedDate).getTime()
+          : null;
+
         // Handle null values: put them at the end in ascending order
         if (dateA === null && dateB === null) {
           compareValue = 0;
@@ -193,7 +208,9 @@ export default function MaterialsPage() {
     return sortDirection === 'asc' ? compareValue : -compareValue;
   });
 
-  const handleSort = (column: 'title' | 'author' | 'publishedDate' | 'createdAt') => {
+  const handleSort = (
+    column: 'title' | 'author' | 'publishedDate' | 'createdAt'
+  ) => {
     if (sortColumn === column) {
       // Toggle direction if same column
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -205,14 +222,41 @@ export default function MaterialsPage() {
   };
 
   const handleAddMaterial = (newMaterial: MaterialWithStatus) => {
-    setMaterials((prev) => [newMaterial, ...prev]);
+    // Sort authors alphabetically before adding
+    const materialWithSortedAuthors = {
+      ...newMaterial,
+      authors: newMaterial.authors
+        ? [...newMaterial.authors].sort((a, b) => {
+            const nameA = `${a.lastName} ${a.firstName}`.toLowerCase();
+            const nameB = `${b.lastName} ${b.firstName}`.toLowerCase();
+            return nameA.localeCompare(nameB);
+          })
+        : newMaterial.authors,
+    };
+
+    setMaterials((prev) => [materialWithSortedAuthors, ...prev]);
   };
 
   const handleUpdateMaterial = (updatedMaterial: MaterialWithStatus) => {
+    // Sort authors alphabetically before updating
+    const materialWithSortedAuthors = {
+      ...updatedMaterial,
+      authors: updatedMaterial.authors
+        ? [...updatedMaterial.authors].sort((a, b) => {
+            const nameA = `${a.lastName} ${a.firstName}`.toLowerCase();
+            const nameB = `${b.lastName} ${b.firstName}`.toLowerCase();
+            return nameA.localeCompare(nameB);
+          })
+        : updatedMaterial.authors,
+    };
+
     setMaterials((prev) =>
-      prev.map((m) => (m.id === updatedMaterial.id ? updatedMaterial : m))
+      prev.map((m) =>
+        m.id === updatedMaterial.id ? materialWithSortedAuthors : m
+      )
     );
     setMaterialToEdit(null);
+    setIsEditDialogOpen(false);
   };
 
   const handleEditMaterial = (material: MaterialWithStatus) => {
@@ -221,7 +265,7 @@ export default function MaterialsPage() {
       return;
     }
     setMaterialToEdit(material);
-    setIsAddDialogOpen(true);
+    setIsEditDialogOpen(true);
   };
 
   const handleDeleteMaterial = async () => {
@@ -243,9 +287,23 @@ export default function MaterialsPage() {
     }
   };
 
-  const openDetails = (material: MaterialWithStatus) => {
+  const openDetails = async (material: MaterialWithStatus) => {
     setSelectedMaterial(material);
     setIsDetailsOpen(true);
+
+    // Fetch full material details including copies
+    if (token) {
+      try {
+        const fullMaterial = await materialsApi.getById(material.id, token);
+        setSelectedMaterial({
+          ...fullMaterial,
+          description: fullMaterial.description ?? undefined,
+        });
+      } catch (error) {
+        console.error('Error fetching material details:', error);
+        toast.error('Error al cargar los detalles del material');
+      }
+    }
   };
 
   const refreshMaterials = useCallback(async () => {
@@ -325,7 +383,9 @@ export default function MaterialsPage() {
               <SelectContent>
                 <SelectItem value="all">Todos los idiomas</SelectItem>
                 {Array.from(new Set(materials.map((m) => m.language)))
-                  .sort((a, b) => getLanguageLabel(a).localeCompare(getLanguageLabel(b)))
+                  .sort((a, b) =>
+                    getLanguageLabel(a).localeCompare(getLanguageLabel(b))
+                  )
                   .map((language) => (
                     <SelectItem key={language} value={language}>
                       {getLanguageLabel(language)}
@@ -378,6 +438,7 @@ export default function MaterialsPage() {
                 </button>
               </TableHead>
               <TableHead>Categorías</TableHead>
+              <TableHead>Copias</TableHead>
               <TableHead>
                 <button
                   onClick={() => handleSort('publishedDate')}
@@ -419,7 +480,7 @@ export default function MaterialsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={9} className="text-center py-8">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Loader2 className="h-12 w-12 opacity-50 animate-spin" />
                     <p>Cargando materiales...</p>
@@ -428,7 +489,7 @@ export default function MaterialsPage() {
               </TableRow>
             ) : filteredMaterials.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={9} className="text-center py-8">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <BookOpen className="h-12 w-12 opacity-50" />
                     <p>No se encontraron materiales</p>
@@ -437,15 +498,6 @@ export default function MaterialsPage() {
               </TableRow>
             ) : (
               sortedMaterials.map((material) => {
-                const authorsText = material.authors
-                  ?.map(
-                    (author) =>
-                      `${author.firstName}${
-                        author.middleName ? ' ' + author.middleName : ''
-                      } ${author.lastName}`
-                  )
-                  .join(', ');
-
                 return (
                   <TableRow key={material.id}>
                     <TableCell>
@@ -463,15 +515,59 @@ export default function MaterialsPage() {
                         {typeLabels[material.type] || material.type}
                       </Badge>
                     </TableCell>
-                    <TableCell>{authorsText || '-'}</TableCell>
+                    <TableCell>
+                      {material.authors && material.authors.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {[...material.authors]
+                            .sort((a, b) => {
+                              // Sort by full name: firstName + middleName + lastName
+                              const fullNameA = `${a.firstName} ${
+                                a.middleName || ''
+                              } ${a.lastName}`
+                                .trim()
+                                .toLowerCase();
+                              const fullNameB = `${b.firstName} ${
+                                b.middleName || ''
+                              } ${b.lastName}`
+                                .trim()
+                                .toLowerCase();
+                              return fullNameA.localeCompare(fullNameB, 'es');
+                            })
+                            .map((author, idx) => (
+                              <span key={author.id || idx} className="text-sm">
+                                {author.firstName}
+                                {author.middleName
+                                  ? ' ' + author.middleName
+                                  : ''}{' '}
+                                {author.lastName}
+                              </span>
+                            ))}
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {material.categories && material.categories.length > 0 ? (
-                          material.categories.map((category) => (
-                            <Badge key={category.id} variant="secondary" className="text-xs">
-                              {category.name}
-                            </Badge>
-                          ))
+                        {material.categories && material.categories.length > 0
+                          ? material.categories.map((category) => (
+                              <Badge
+                                key={category.id}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {category.name}
+                              </Badge>
+                            ))
+                          : '-'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-center">
+                        {material.totalCopies !== undefined ? (
+                          <Badge variant="outline">
+                            {material.totalCopies}
+                          </Badge>
                         ) : (
                           '-'
                         )}
@@ -479,19 +575,32 @@ export default function MaterialsPage() {
                     </TableCell>
                     <TableCell>
                       {material.publishedDate
-                        ? new Date(material.publishedDate).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })
+                        ? (() => {
+                            const [year, month, day] = material.publishedDate
+                              .split('T')[0]
+                              .split('-');
+                            const date = new Date(
+                              parseInt(year),
+                              parseInt(month) - 1,
+                              parseInt(day)
+                            );
+                            return date.toLocaleDateString('es-ES', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            });
+                          })()
                         : '-'}
                     </TableCell>
                     <TableCell>
-                      {new Date(material.createdAt).toLocaleDateString('es-ES', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      {new Date(material.createdAt).toLocaleDateString(
+                        'es-ES',
+                        {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        }
+                      )}
                     </TableCell>
                     <TableCell className="capitalize">
                       {material.language || '-'}
@@ -548,15 +657,22 @@ export default function MaterialsPage() {
       {/* Sheets & Dialogs */}
       <AddMaterialDialog
         open={isAddDialogOpen}
-        onOpenChange={(open) => {
-          setIsAddDialogOpen(open);
-          if (!open) setMaterialToEdit(null);
-        }}
+        onOpenChange={setIsAddDialogOpen}
         onAdd={handleAddMaterial}
-        onUpdate={handleUpdateMaterial}
         onSuccess={refreshMaterials}
-        materialToEdit={materialToEdit}
       />
+
+      {materialToEdit && (
+        <EditMaterialDialog
+          open={isEditDialogOpen}
+          onOpenChange={(open) => {
+            setIsEditDialogOpen(open);
+            if (!open) setMaterialToEdit(null);
+          }}
+          onUpdate={handleUpdateMaterial}
+          material={materialToEdit}
+        />
+      )}
 
       <MaterialDetailsSheet
         open={isDetailsOpen}

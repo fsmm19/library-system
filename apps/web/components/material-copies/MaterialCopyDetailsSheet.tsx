@@ -16,9 +16,15 @@ import {
   MapPin,
   PackageCheck,
   Tag,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MaterialCopyCondition, MaterialCopyStatus } from '@library/types';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { materialCopiesApi } from '@/lib/api/material-copies';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export interface MaterialCopyWithMaterial {
   id: string;
@@ -36,12 +42,26 @@ export interface MaterialCopyWithMaterial {
     type: string;
     language: string;
   };
+  loans?: Array<{
+    id: string;
+    loanDate: string;
+    dueDate: string;
+    returnDate: string | null;
+    status: string;
+    member: {
+      user: {
+        firstName: string;
+        lastName: string;
+      };
+    };
+  }>;
 }
 
 interface MaterialCopyDetailsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   copy: MaterialCopyWithMaterial | null;
+  onEdit?: (copy: any) => void;
 }
 
 const statusLabels: Record<MaterialCopyStatus, string> = {
@@ -86,8 +106,35 @@ export default function MaterialCopyDetailsSheet({
   open,
   onOpenChange,
   copy,
+  onEdit,
 }: MaterialCopyDetailsSheetProps) {
+  const { token } = useAuth();
+  const [fullCopy, setFullCopy] = useState<MaterialCopyWithMaterial | null>(
+    null
+  );
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const loadFullDetails = async () => {
+      if (open && copy && token) {
+        setLoading(true);
+        try {
+          const details = await materialCopiesApi.getById(copy.id, token);
+          setFullCopy(details);
+        } catch (error) {
+          console.error('Error loading copy details:', error);
+          toast.error('Error al cargar los detalles de la copia');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    loadFullDetails();
+  }, [open, copy, token]);
+
   if (!copy) return null;
+
+  const displayCopy = fullCopy || copy;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -115,30 +162,30 @@ export default function MaterialCopyDetailsSheet({
               <BookCopy className="h-10 w-10 text-primary" />
             </div>
             <div>
-              {copy.material && (
+              {displayCopy.material && (
                 <>
                   <h3 className="text-xl font-semibold">
-                    {copy.material.title}
+                    {displayCopy.material.title}
                   </h3>
-                  {copy.material.subtitle && (
+                  {displayCopy.material.subtitle && (
                     <p className="text-sm text-muted-foreground mt-1">
-                      {copy.material.subtitle}
+                      {displayCopy.material.subtitle}
                     </p>
                   )}
                 </>
               )}
-              {copy.catalogCode && (
+              {displayCopy.catalogCode && (
                 <p className="text-sm font-mono text-muted-foreground mt-2">
-                  Código: {copy.catalogCode}
+                  Código: {displayCopy.catalogCode}
                 </p>
               )}
             </div>
             <div className="flex gap-2 flex-wrap justify-center">
-              <Badge variant={statusVariants[copy.status]}>
-                {statusLabels[copy.status]}
+              <Badge variant={statusVariants[displayCopy.status]}>
+                {statusLabels[displayCopy.status]}
               </Badge>
-              <Badge variant={conditionVariants[copy.condition]}>
-                {conditionLabels[copy.condition]}
+              <Badge variant={conditionVariants[displayCopy.condition]}>
+                {conditionLabels[displayCopy.condition]}
               </Badge>
             </div>
           </div>
@@ -157,42 +204,42 @@ export default function MaterialCopyDetailsSheet({
                 <div className="flex-1">
                   <p className="text-sm font-medium">Fecha de adquisición</p>
                   <p className="text-sm text-muted-foreground">
-                    {formatDate(copy.acquisitionDate)}
+                    {formatDate(displayCopy.acquisitionDate)}
                   </p>
                 </div>
               </div>
 
-              {copy.location && (
+              {displayCopy.location && (
                 <div className="flex items-start gap-3">
                   <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">Ubicación</p>
                     <p className="text-sm text-muted-foreground">
-                      {copy.location}
+                      {displayCopy.location}
                     </p>
                   </div>
                 </div>
               )}
 
-              {copy.barcode && (
+              {displayCopy.barcode && (
                 <div className="flex items-start gap-3">
                   <Barcode className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">Código de barras</p>
                     <p className="text-sm text-muted-foreground font-mono">
-                      {copy.barcode}
+                      {displayCopy.barcode}
                     </p>
                   </div>
                 </div>
               )}
 
-              {copy.catalogCode && (
+              {displayCopy.catalogCode && (
                 <div className="flex items-start gap-3">
                   <Tag className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">Código de catálogo</p>
                     <p className="text-sm text-muted-foreground font-mono">
-                      {copy.catalogCode}
+                      {displayCopy.catalogCode}
                     </p>
                   </div>
                 </div>
@@ -203,7 +250,7 @@ export default function MaterialCopyDetailsSheet({
                 <div className="flex-1">
                   <p className="text-sm font-medium">Condición</p>
                   <p className="text-sm text-muted-foreground">
-                    {conditionLabels[copy.condition]}
+                    {conditionLabels[displayCopy.condition]}
                   </p>
                 </div>
               </div>
@@ -214,25 +261,21 @@ export default function MaterialCopyDetailsSheet({
           <Separator />
           <div className="space-y-4">
             <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-              Detalles técnicos
+              Material asociado
             </h4>
 
-            <div className="rounded-lg border p-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  ID de copia
-                </span>
-                <span className="font-medium text-xs font-mono">{copy.id}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  ID de material
-                </span>
-                <span className="font-medium text-xs font-mono">
-                  {copy.materialId}
-                </span>
-              </div>
-            </div>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                if (displayCopy.materialId) {
+                  window.open(`/catalog/${displayCopy.materialId}`, '_blank');
+                }
+              }}
+            >
+              <BookCopy className="mr-2 h-4 w-4" />
+              Ver detalles del material
+            </Button>
           </div>
 
           <Separator />
@@ -242,11 +285,74 @@ export default function MaterialCopyDetailsSheet({
             <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
               Historial de préstamos
             </h4>
-            <div className="rounded-lg border p-4">
-              <p className="text-sm text-muted-foreground text-center">
-                Historial completo disponible próximamente
-              </p>
-            </div>
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : displayCopy.loans && displayCopy.loans.length > 0 ? (
+              <div
+                className={`space-y-2 ${
+                  displayCopy.loans.length > 5
+                    ? 'max-h-[400px] overflow-y-auto pr-2'
+                    : ''
+                }`}
+              >
+                {[...displayCopy.loans]
+                  .sort(
+                    (a, b) =>
+                      new Date(b.loanDate).getTime() -
+                      new Date(a.loanDate).getTime()
+                  )
+                  .map((loan) => (
+                    <div
+                      key={loan.id}
+                      className="rounded-lg border p-3 space-y-2"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-medium pb-1">
+                            {loan.member.user.firstName}{' '}
+                            {loan.member.user.lastName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Préstamo:{' '}
+                            {format(new Date(loan.loanDate), 'PP', {
+                              locale: es,
+                            })}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={loan.returnDate ? 'secondary' : 'default'}
+                        >
+                          {loan.returnDate ? 'Devuelto' : 'Activo'}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p>
+                          Vencimiento:{' '}
+                          {format(new Date(loan.dueDate), 'PP', { locale: es })}
+                        </p>
+                      </div>
+                      {loan.returnDate && (
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <p>
+                            Devuelto:{' '}
+                            {format(new Date(loan.returnDate), 'PP', {
+                              locale: es,
+                            })}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border p-4">
+                <p className="text-sm text-muted-foreground text-center">
+                  No hay préstamos registrados para esta copia
+                </p>
+              </div>
+            )}
           </div>
 
           <Separator />
@@ -255,7 +361,13 @@ export default function MaterialCopyDetailsSheet({
           <div className="space-y-2">
             <Button
               className="w-full"
-              onClick={() => toast.info('Edición disponible próximamente')}
+              onClick={() => {
+                if (displayCopy && onEdit) {
+                  onEdit(displayCopy);
+                  onOpenChange(false);
+                }
+              }}
+              disabled={!onEdit}
             >
               <Edit className="mr-2 h-4 w-4" />
               Editar copia

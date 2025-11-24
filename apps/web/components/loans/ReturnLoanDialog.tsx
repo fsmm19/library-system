@@ -11,6 +11,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,16 +27,29 @@ import { toast } from 'sonner';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { loansApi } from '@/lib/api/loans';
-import { LoanWithDetails } from '@library/types';
+import { LoanWithDetails, MaterialCopyCondition } from '@library/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const returnLoanSchema = z.object({
   returnDate: z.string().min(1, 'La fecha de devolución es requerida'),
+  condition: z
+    .enum(MaterialCopyCondition)
+    .refine((val) => val !== undefined && val !== null, {
+      message: 'Debe evaluar la condición del material',
+    }),
 });
 
 type ReturnLoanFormData = z.infer<typeof returnLoanSchema>;
+
+const conditionLabels: Record<MaterialCopyCondition, string> = {
+  NEW: 'Nuevo',
+  GOOD: 'Bueno',
+  FAIR: 'Regular',
+  DAMAGED: 'Dañado',
+  LOST: 'Perdido',
+};
 
 interface ReturnLoanDialogProps {
   open: boolean;
@@ -54,13 +75,19 @@ export default function ReturnLoanDialog({
     resolver: zodResolver(returnLoanSchema),
     defaultValues: {
       returnDate: new Date().toISOString().split('T')[0],
+      condition: loan.copy.condition,
     },
   });
 
   const onSubmit = async (data: ReturnLoanFormData) => {
     try {
       setSubmitting(true);
-      await loansApi.returnLoan(loan.id, data.returnDate, token!);
+      await loansApi.returnLoan(
+        loan.id,
+        data.returnDate,
+        token!,
+        data.condition
+      );
       toast.success('Material devuelto exitosamente');
       onSuccess();
       onOpenChange(false);
@@ -127,8 +154,8 @@ export default function ReturnLoanDialog({
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Este préstamo está vencido por {daysOverdue} día(s). Se
-                generará automáticamente una multa al devolver.
+                Este préstamo está vencido por {daysOverdue} día(s). Se generará
+                automáticamente una multa al devolver.
               </AlertDescription>
             </Alert>
           )}
@@ -141,7 +168,11 @@ export default function ReturnLoanDialog({
                 name="returnDate"
                 control={control}
                 render={({ field }) => (
-                  <Input type="date" {...field} value={field.value || ''} />
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar fecha de devolución"
+                  />
                 )}
               />
               {errors.returnDate && (
@@ -149,6 +180,37 @@ export default function ReturnLoanDialog({
                   {errors.returnDate.message}
                 </p>
               )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="condition">Condición del material *</Label>
+              <Controller
+                name="condition"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Evaluar condición" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(conditionLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.condition && (
+                <p className="text-sm text-destructive">
+                  {errors.condition.message}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Evalúe la condición actual del material devuelto. Si el miembro
+                reporta pérdida, seleccione "Perdido".
+              </p>
             </div>
 
             <DialogFooter>
@@ -161,7 +223,9 @@ export default function ReturnLoanDialog({
                 Cancelar
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {submitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Confirmar devolución
               </Button>
             </DialogFooter>

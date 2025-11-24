@@ -22,7 +22,7 @@ export class CreateBookDto {
   @IsInt()
   @Min(1)
   @IsOptional()
-  numberOfPages?: number;
+  numberOfPages?: number | null;
 
   @IsUUID()
   @IsOptional()

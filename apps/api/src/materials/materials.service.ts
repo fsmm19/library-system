@@ -144,7 +144,9 @@ export class MaterialsService {
         book: true,
         copies: {
           where: {
-            deletedAt: null,
+            status: {
+              not: 'REMOVED',
+            },
           },
           select: {
             status: true,
@@ -195,7 +197,9 @@ export class MaterialsService {
         },
         copies: {
           where: {
-            deletedAt: null,
+            status: {
+              not: 'REMOVED',
+            },
           },
           orderBy: {
             acquisitionDate: 'desc',
@@ -236,21 +240,78 @@ export class MaterialsService {
     await this.findOne(id);
 
     return this.prisma.$transaction(async (tx) => {
+      // Prepare update data
+      const updateData: any = {
+        title: updateMaterialDto.title,
+        subtitle: updateMaterialDto.subtitle,
+        type: updateMaterialDto.type,
+        language: updateMaterialDto.language,
+      };
+
+      // Only include publishedDate if it has a valid value (not empty string)
+      if (
+        updateMaterialDto.publishedDate &&
+        typeof updateMaterialDto.publishedDate === 'string' &&
+        updateMaterialDto.publishedDate.trim() !== ''
+      ) {
+        // Convert to ISO DateTime if it's just a date (YYYY-MM-DD)
+        const dateValue = updateMaterialDto.publishedDate.includes('T')
+          ? updateMaterialDto.publishedDate
+          : `${updateMaterialDto.publishedDate}T00:00:00.000Z`;
+        updateData.publishedDate = new Date(dateValue);
+      } else if (
+        updateMaterialDto.publishedDate === '' ||
+        updateMaterialDto.publishedDate === null
+      ) {
+        // Explicitly set to null if empty string is sent
+        updateData.publishedDate = null;
+      }
+
+      // Only include description if provided
+      if (updateMaterialDto.description !== undefined) {
+        updateData.description = updateMaterialDto.description;
+      }
+
       // Update material basic info
       const material = await tx.material.update({
         where: { id },
-        data: {
-          title: updateMaterialDto.title,
-          subtitle: updateMaterialDto.subtitle,
-          type: updateMaterialDto.type,
-          language: updateMaterialDto.language,
-        },
+        data: updateData,
         include: {
           authors: true,
           categories: true,
           book: true,
         },
       });
+
+      // Update categories if provided
+      if (updateMaterialDto.categories !== undefined) {
+        // Disconnect all current categories
+        await tx.material.update({
+          where: { id },
+          data: {
+            categories: {
+              set: [],
+            },
+          },
+        });
+
+        // Connect new categories if any
+        if (
+          updateMaterialDto.categories &&
+          updateMaterialDto.categories.length > 0
+        ) {
+          await tx.material.update({
+            where: { id },
+            data: {
+              categories: {
+                connect: updateMaterialDto.categories.map((cat) => ({
+                  id: cat.id,
+                })),
+              },
+            },
+          });
+        }
+      }
 
       // Update authors if provided
       if (updateMaterialDto.authors) {
@@ -308,6 +369,7 @@ export class MaterialsService {
         where: { id },
         include: {
           authors: true,
+          categories: true,
           book: true,
         },
       });
@@ -322,7 +384,9 @@ export class MaterialsService {
     const copiesCount = await this.prisma.materialCopy.count({
       where: {
         materialId: id,
-        deletedAt: null, // Only count non-deleted copies
+        status: {
+          not: 'REMOVED', // Exclude removed copies
+        },
       },
     });
 
@@ -501,6 +565,54 @@ export class MaterialsService {
     }
 
     return this.prisma.publisher.delete({
+      where: { id },
+    });
+  }
+
+  // Authors CRUD
+  async updateAuthor(
+    id: string,
+    data: {
+      firstName?: string;
+      middleName?: string;
+      lastName?: string;
+      countryOfOriginId?: string;
+      birthDate?: string;
+    },
+  ) {
+    const author = await this.prisma.author.findUnique({
+      where: { id },
+    });
+
+    if (!author) {
+      throw new NotFoundException(`Author with ID ${id} not found`);
+    }
+
+    return this.prisma.author.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async removeAuthor(id: string) {
+    const author = await this.prisma.author.findUnique({
+      where: { id },
+      include: {
+        materials: true,
+      },
+    });
+
+    if (!author) {
+      throw new NotFoundException(`Author with ID ${id} not found`);
+    }
+
+    if (author.materials.length > 0) {
+      throw new ConflictException(
+        `El autor tiene ${author.materials.length} ${author.materials.length === 1 ? 'material asociado' : 'materiales asociados'}`,
+      );
+    }
+
+    return this.prisma.author.delete({
       where: { id },
     });
   }

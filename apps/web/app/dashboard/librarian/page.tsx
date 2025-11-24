@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Users,
   History,
+  DollarSign,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,7 @@ import { usersApi } from '@/lib/api/users';
 import { materialCopiesApi } from '@/lib/api/material-copies';
 import { materialsApi } from '@/lib/api/materials';
 import { loansApi } from '@/lib/api/loans';
+import { finesApi } from '@/lib/api/fines';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -83,6 +85,8 @@ export default function LibrarianDashboard() {
     totalCopies: 0,
     activeLoans: 0,
     overdueLoans: 0,
+    pendingFines: 0,
+    pendingFinesAmount: 0,
   });
   const [pendingActions, setPendingActions] = useState({
     overdueLoans: 0,
@@ -184,6 +188,16 @@ export default function LibrarianDashboard() {
         const materialsResponse = await materialsApi.search({}, token);
         const allMaterials = materialsResponse.materials || [];
 
+        // Fetch fines statistics
+        const finesResponse = await finesApi.getAll({}, token);
+        const allFines = finesResponse.fines || [];
+        const pendingFines = allFines.filter(
+          (fine) => fine.status === 'PENDING'
+        ).length;
+        const pendingFinesAmount = allFines
+          .filter((fine) => fine.status === 'PENDING')
+          .reduce((sum, fine) => sum + (fine.amount - fine.paidAmount), 0);
+
         // Build activity list from different sources
         const activities: Activity[] = [];
 
@@ -263,6 +277,8 @@ export default function LibrarianDashboard() {
           totalCopies,
           activeLoans,
           overdueLoans,
+          pendingFines,
+          pendingFinesAmount,
         });
         setPendingActions({
           overdueLoans,
@@ -363,6 +379,53 @@ export default function LibrarianDashboard() {
               : undefined
           }
         />
+      </div>
+
+      {/* Fines Stats */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Multas pendientes
+            </CardTitle>
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              {isLoading ? '...' : stats.pendingFines}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {isLoading ? '' : `${stats.pendingFines} multas sin pagar`}
+            </p>
+            <Link href="/dashboard/librarian/fines">
+              <Button variant="link" className="mt-2 p-0 h-auto">
+                Ver todas las multas →
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Monto pendiente de multas
+            </CardTitle>
+            <DollarSign className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              {isLoading ? '...' : `$${stats.pendingFinesAmount.toFixed(2)}`}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {isLoading ? '' : 'Total por cobrar'}
+            </p>
+            <Link href="/dashboard/librarian/fines">
+              <Button variant="link" className="mt-2 p-0 h-auto">
+                Gestionar pagos →
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

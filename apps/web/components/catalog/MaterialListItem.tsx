@@ -217,17 +217,20 @@ export function MaterialListItem({ material, index }: MaterialListItemProps) {
             </Link>
 
             {/* Authors */}
-            {material.authors.length > 0 && (
-              <p className="text-sm mb-1">
+            <p className="text-sm mb-1">
+              {material.authors && material.authors.length > 0 && (
                 <span className="text-muted-foreground">Por: </span>
-                <span className="text-foreground">
-                  {formatAuthors(material.authors)}
-                  {material.publishedDate && (
-                    <span> - {new Date(material.publishedDate).getFullYear()}</span>
-                  )}
-                </span>
-              </p>
-            )}
+              )}
+              <span className="text-foreground">
+                {formatAuthors(material.authors)}
+                {material.publishedDate && (
+                  <span>
+                    {' '}
+                    - {new Date(material.publishedDate).getFullYear()}
+                  </span>
+                )}
+              </span>
+            </p>
 
             {/* Language and Pages */}
             <div className="flex gap-4 text-sm text-muted-foreground mb-3">

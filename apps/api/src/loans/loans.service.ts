@@ -261,7 +261,11 @@ export class LoansService {
     return loan;
   }
 
-  async returnLoan(id: string, returnDate?: string) {
+  async returnLoan(
+    id: string,
+    returnDate?: string,
+    condition?: MaterialCopyCondition,
+  ) {
     const loan = await this.findOne(id);
 
     if (
@@ -277,10 +281,27 @@ export class LoansService {
     const config = await this.configService.getConfiguration();
 
     return this.prisma.$transaction(async (tx) => {
-      // Update copy status to AVAILABLE
+      // Determine the new status based on condition
+      let newStatus: MaterialCopyStatus = MaterialCopyStatus.AVAILABLE;
+      const updateData: any = {
+        status: newStatus,
+      };
+
+      // Update condition if provided
+      if (condition) {
+        updateData.condition = condition;
+
+        // If marked as LOST, change status to REMOVED
+        if (condition === MaterialCopyCondition.LOST) {
+          updateData.status = MaterialCopyStatus.REMOVED;
+          newStatus = MaterialCopyStatus.REMOVED;
+        }
+      }
+
+      // Update copy status and condition
       await tx.materialCopy.update({
         where: { id: loan.copyId },
-        data: { status: MaterialCopyStatus.AVAILABLE },
+        data: updateData,
       });
 
       // Update loan status
@@ -325,7 +346,7 @@ export class LoansService {
             data: {
               loanId: id,
               amount: fineAmount,
-              reason: 'Late return',
+              reason: 'Devolución tardía',
               issuedById: loan.processedById,
             },
           });

@@ -20,6 +20,8 @@ import { CreateCountryDto } from './dto/create-country.dto';
 import { UpdateCountryDto } from './dto/update-country.dto';
 import { CreatePublisherDto } from './dto/create-publisher.dto';
 import { UpdatePublisherDto } from './dto/update-publisher.dto';
+import { CreateAuthorDto } from './dto/create-author.dto';
+import { UpdateAuthorDto } from './dto/update-author.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -166,5 +168,23 @@ export class MaterialsController {
   @Roles(Role.LIBRARIAN)
   removePublisher(@Param('id', ParseUUIDPipe) id: string) {
     return this.materialsService.removePublisher(id);
+  }
+
+  // Authors CRUD
+  @Patch('authors/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.LIBRARIAN)
+  updateAuthor(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateAuthorDto: UpdateAuthorDto,
+  ) {
+    return this.materialsService.updateAuthor(id, updateAuthorDto);
+  }
+
+  @Delete('authors/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.LIBRARIAN)
+  removeAuthor(@Param('id', ParseUUIDPipe) id: string) {
+    return this.materialsService.removeAuthor(id);
   }
 }

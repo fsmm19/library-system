@@ -1,5 +1,6 @@
 import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
 import { LoanStatus } from 'generated/prisma/enums';
+import { MaterialCopyCondition } from 'generated/prisma/enums';
 
 export class UpdateLoanDto {
   @IsDateString()
@@ -13,4 +14,8 @@ export class UpdateLoanDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsEnum(MaterialCopyCondition)
+  @IsOptional()
+  condition?: MaterialCopyCondition;
 }

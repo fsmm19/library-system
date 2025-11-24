@@ -17,7 +17,15 @@ import {
   addBookMaterialSchema,
 } from '@/lib/schemas/material-schemas';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { BookOpen, Disc, Loader2, Newspaper, Plus, Trash2, X } from 'lucide-react';
+import {
+  BookOpen,
+  Disc,
+  Loader2,
+  Newspaper,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useFieldArray, useForm, Controller, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { MaterialWithStatus } from './MaterialDetailsSheet';
@@ -46,9 +54,7 @@ interface AddMaterialDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (material: MaterialWithStatus) => void;
-  onUpdate?: (material: MaterialWithStatus) => void;
   onSuccess?: () => void | Promise<void>;
-  materialToEdit?: MaterialWithStatus | null;
 }
 
 type MaterialType = 'book' | 'magazine' | 'dvd' | 'other' | null;
@@ -83,9 +89,7 @@ export default function AddMaterialDialog({
   open,
   onOpenChange,
   onAdd,
-  onUpdate,
   onSuccess,
-  materialToEdit,
 }: AddMaterialDialogProps) {
   const { token } = useAuth();
   const [selectedType, setSelectedType] = useState<MaterialType>(null);
@@ -101,10 +105,8 @@ export default function AddMaterialDialog({
   );
   const [loadingAuthors, setLoadingAuthors] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
-  const [authorModes, setAuthorModes] = useState<('new' | 'existing')[]>([
-    'new',
-  ]);
-  const [selectedAuthorIds, setSelectedAuthorIds] = useState<string[]>(['']);
+  const [authorModes, setAuthorModes] = useState<('new' | 'existing')[]>([]);
+  const [selectedAuthorIds, setSelectedAuthorIds] = useState<string[]>([]);
   const [formLoaded, setFormLoaded] = useState(false);
 
   const {
@@ -123,15 +125,7 @@ export default function AddMaterialDialog({
       publishedDate: '',
       description: '',
       categories: [],
-      authors: [
-        {
-          firstName: '',
-          middleName: '',
-          lastName: '',
-          countryOfOriginId: '',
-          birthDate: '',
-        },
-      ],
+      authors: [],
       book: {
         isbn13: '',
         edition: '',
@@ -149,111 +143,43 @@ export default function AddMaterialDialog({
   // Watch all form values
   const watchedValues = useWatch({ control });
 
-  // Load form data from localStorage on mount
+  // Reset formLoaded when dialog opens
+  useEffect(() => {
+    if (open) {
+      setFormLoaded(false);
+    }
+  }, [open]);
+
+  // Initialize form when dialog opens
   useEffect(() => {
     if (formLoaded) return;
+    if (!open) return;
 
     try {
+      // ADDING MODE: Try to load from localStorage first
       const savedData = localStorage.getItem(STORAGE_KEY);
-      if (savedData) {
-        const parsed = JSON.parse(savedData);
 
-        // Restore form values
+      if (savedData) {
+        // Load draft
+        const parsed = JSON.parse(savedData);
+        console.log('Loaded from localStorage:', parsed);
+        if (parsed.selectedType) {
+          setSelectedType(parsed.selectedType);
+        }
         if (parsed.formData) {
           Object.keys(parsed.formData).forEach((key) => {
             setValue(key as any, parsed.formData[key]);
           });
         }
-
-        // Restore author modes and selected IDs
         if (parsed.authorModes) {
           setAuthorModes(parsed.authorModes);
         }
         if (parsed.selectedAuthorIds) {
           setSelectedAuthorIds(parsed.selectedAuthorIds);
         }
-      }
-    } catch (error) {
-      console.error('Error loading form draft:', error);
-    } finally {
-      setFormLoaded(true);
-    }
-  }, [formLoaded, setValue]);
-
-  // Initialize form with materialToEdit data when it changes
-  useEffect(() => {
-    if (open && materialToEdit) {
-      // Set type based on material type
-      if (materialToEdit.type === 'BOOK') {
-        setSelectedType('book');
-      } else if (materialToEdit.type === 'MAGAZINE') {
-        setSelectedType('magazine');
-      } else if (materialToEdit.type === 'DVD') {
-        setSelectedType('dvd');
       } else {
-        setSelectedType('other');
-      }
-
-      // Prepare form data
-      const formData: any = {
-        title: materialToEdit.title,
-        subtitle: materialToEdit.subtitle || '',
-        language: (materialToEdit.language as any) || 'ES',
-        publishedDate: materialToEdit.publishedDate ? new Date(materialToEdit.publishedDate).toISOString().split('T')[0] : '',
-        description: materialToEdit.description || '',
-        categories: materialToEdit.categories ? materialToEdit.categories.map(c => c.id) : [],
-        book: {
-          isbn13: '',
-          edition: '',
-          numberOfPages: undefined,
-          publisherId: '',
-        },
-        authors: [],
-      };
-
-      // Set book details
-      if (materialToEdit.book) {
-        formData.book = {
-          isbn13: materialToEdit.book.isbn13 || '',
-          edition: materialToEdit.book.edition || '',
-          numberOfPages: materialToEdit.book.numberOfPages || undefined,
-          publisherId: materialToEdit.book.publisherId || '',
-        };
-      }
-
-      // Set authors
-      if (materialToEdit.authors && materialToEdit.authors.length > 0) {
-        // Set author modes to 'existing' for all authors
-        const modes = materialToEdit.authors.map(() => 'existing' as const);
-        setAuthorModes(modes);
-        
-        // Set selected IDs
-        const ids = materialToEdit.authors.map(a => a.id);
-        setSelectedAuthorIds(ids);
-
-        // Add authors to form data
-        formData.authors = materialToEdit.authors.map(author => ({
-          firstName: author.firstName,
-          middleName: author.middleName || '',
-          lastName: author.lastName,
-          countryOfOriginId: author.countryOfOriginId || '',
-          birthDate: author.birthDate || '',
-        }));
-      } else {
-        // If no authors (which is allowed now), initialize with empty array
-        // But if we want to show at least one empty row for UX, we could do that, 
-        // but since we allow 0 authors, empty array is correct.
-        formData.authors = [];
-        setAuthorModes([]);
-        setSelectedAuthorIds([]);
-      }
-
-      // Reset form with all data
-      reset(formData);
-    } else if (open && !materialToEdit) {
-      // Reset if opening for new material
-      // Only if we haven't loaded a draft (handled by other useEffect)
-      if (!localStorage.getItem(STORAGE_KEY)) {
+        // No draft, use default values
+        console.log('No localStorage data found, resetting to defaults');
         setSelectedType(null);
         reset({
           title: '',
@@ -262,15 +188,7 @@ export default function AddMaterialDialog({
           publishedDate: '',
           description: '',
           categories: [],
-          authors: [
-            {
-              firstName: '',
-              middleName: '',
-              lastName: '',
-              countryOfOriginId: '',
-              birthDate: '',
-            },
-          ],
+          authors: [],
           book: {
             isbn13: '',
             edition: '',
@@ -278,20 +196,43 @@ export default function AddMaterialDialog({
             publisherId: '',
           },
         });
-        setAuthorModes(['new']);
-        setSelectedAuthorIds(['']);
+        setAuthorModes([]);
+        setSelectedAuthorIds([]);
       }
+    } catch (error) {
+      console.error('Error loading form data:', error);
+    } finally {
+      setFormLoaded(true);
     }
-  }, [open, materialToEdit, setValue, reset]);
+  }, [open, formLoaded, setValue, reset]);
 
   // Save form data to localStorage whenever it changes
   useEffect(() => {
-    if (!formLoaded) return;
+    if (!formLoaded || !open) return;
+    // Only save if a material type has been selected
+    if (!selectedType) return;
+
+    // Check if there's any meaningful data to save
+    const hasData =
+      watchedValues?.title ||
+      watchedValues?.subtitle ||
+      watchedValues?.description ||
+      (watchedValues?.categories && watchedValues.categories.length > 0) ||
+      (watchedValues?.authors &&
+        watchedValues.authors.some((a: any) => a.firstName || a.lastName)) ||
+      watchedValues?.book?.isbn13 ||
+      watchedValues?.book?.edition ||
+      watchedValues?.book?.numberOfPages ||
+      watchedValues?.book?.publisherId;
+
+    // Only save to localStorage if there's actual data entered
+    if (!hasData) return;
 
     try {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
+          selectedType,
           formData: watchedValues,
           authorModes,
           selectedAuthorIds,
@@ -301,7 +242,14 @@ export default function AddMaterialDialog({
     } catch (error) {
       console.error('Error saving form draft:', error);
     }
-  }, [watchedValues, authorModes, selectedAuthorIds, formLoaded]);
+  }, [
+    watchedValues,
+    authorModes,
+    selectedAuthorIds,
+    formLoaded,
+    open,
+    selectedType,
+  ]);
   const onSubmit = async (data: AddBookMaterialFormData) => {
     if (!token) {
       toast.error('No se encontró el token de autenticación');
@@ -354,37 +302,28 @@ export default function AddMaterialDialog({
                 isbn13: data.book.isbn13 || undefined,
                 edition: data.book.edition || undefined,
                 numberOfPages: data.book.numberOfPages || undefined,
-                publisherId: data.book.publisherId && data.book.publisherId !== '' ? data.book.publisherId : undefined,
+                publisherId:
+                  data.book.publisherId && data.book.publisherId !== ''
+                    ? data.book.publisherId
+                    : undefined,
               }
             : undefined,
       };
 
-      let resultMaterial;
+      // Create new material
+      const createdMaterial = await materialsApi.create(materialData, token);
+      const resultMaterial = createdMaterial;
 
-      if (materialToEdit) {
-        // Update existing material
-        const updatedMaterial = await materialsApi.update(materialToEdit.id, materialData, token);
-        resultMaterial = updatedMaterial;
-        
-        if (onUpdate) {
-          onUpdate(resultMaterial as MaterialWithStatus);
-        }
-        toast.success('Material actualizado correctamente');
-      } else {
-        // Create new material
-        const createdMaterial = await materialsApi.create(materialData, token);
-        resultMaterial = createdMaterial;
-        
-        if (onAdd) {
-          onAdd(resultMaterial as MaterialWithStatus);
-        }
-        toast.success('Material agregado correctamente');
+      if (onAdd) {
+        onAdd(resultMaterial as MaterialWithStatus);
       }
+      toast.success('Material agregado correctamente');
 
       // Clear form and localStorage
       reset();
-      setAuthorModes(['new']);
-      setSelectedAuthorIds(['']);
+      setAuthorModes([]);
+      setSelectedAuthorIds([]);
+      setSelectedType(null);
       localStorage.removeItem(STORAGE_KEY);
 
       onOpenChange(false);
@@ -504,19 +443,33 @@ export default function AddMaterialDialog({
   };
 
   const handleClearForm = () => {
-    reset();
-    setAuthorModes(['new']);
-    setSelectedAuthorIds(['']);
+    // Clear localStorage first
     localStorage.removeItem(STORAGE_KEY);
+
+    // Reset form with explicit values
+    const defaultValues = {
+      title: '',
+      subtitle: '',
+      language: 'ES' as const,
+      publishedDate: '',
+      description: '',
+      categories: [] as string[],
+      authors: [],
+      book: {
+        isbn13: '',
+        edition: '',
+        numberOfPages: undefined as number | undefined,
+        publisherId: '',
+      },
+    };
+
+    reset(defaultValues);
+    setAuthorModes([]);
+    setSelectedAuthorIds([]);
+    setSelectedType(null);
+
     toast.info('Campos restablecidos');
   };
-
-  // Reset selected type when dialog closes, but keep form data
-  useEffect(() => {
-    if (!open) {
-      setSelectedType(null);
-    }
-  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -524,11 +477,9 @@ export default function AddMaterialDialog({
         {!selectedType ? (
           <>
             <DialogHeader>
-              <DialogTitle>
-                {materialToEdit ? 'Editar material' : 'Agregar nuevo material'}
-              </DialogTitle>
+              <DialogTitle>Agregar nuevo material</DialogTitle>
               <DialogDescription>
-                Seleccione el tipo de material que desea {materialToEdit ? 'editar' : 'agregar'} al catálogo
+                Seleccione el tipo de material que desea agregar al catálogo
               </DialogDescription>
             </DialogHeader>
 
@@ -567,13 +518,9 @@ export default function AddMaterialDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>
-                {materialToEdit ? 'Editar libro' : 'Agregar nuevo libro'}
-              </DialogTitle>
+              <DialogTitle>Agregar nuevo libro</DialogTitle>
               <DialogDescription>
-                {materialToEdit 
-                  ? 'Modifique la información del libro' 
-                  : 'Complete la información del libro que desea agregar al catálogo'}
+                Complete la información del libro que desea agregar al catálogo
               </DialogDescription>
             </DialogHeader>
 
@@ -850,12 +797,19 @@ export default function AddMaterialDialog({
                               Autor <span className="text-destructive">*</span>
                             </Label>
                             <Combobox
-                              options={existingAuthors.map((author) => ({
-                                value: author.id,
-                                label: `${author.firstName} ${
-                                  author.middleName || ''
-                                } ${author.lastName}`.trim(),
-                              }))}
+                              options={existingAuthors
+                                .filter((author) => {
+                                  // Filter out already selected authors except current index
+                                  return !selectedAuthorIds.some(
+                                    (id, i) => i !== index && id === author.id
+                                  );
+                                })
+                                .map((author) => ({
+                                  value: author.id,
+                                  label: `${author.firstName} ${
+                                    author.middleName || ''
+                                  } ${author.lastName}`.trim(),
+                                }))}
                               value={selectedAuthorIds[index] || ''}
                               onValueChange={(value) =>
                                 handleExistingAuthorSelect(index, value)
@@ -978,7 +932,10 @@ export default function AddMaterialDialog({
                                 />
                                 {errors.authors?.[index]?.countryOfOriginId && (
                                   <p className="text-sm text-destructive">
-                                    {errors.authors[index]?.countryOfOriginId?.message}
+                                    {
+                                      errors.authors[index]?.countryOfOriginId
+                                        ?.message
+                                    }
                                   </p>
                                 )}
                               </div>
@@ -1105,6 +1062,12 @@ export default function AddMaterialDialog({
                           return isNaN(num) ? undefined : num;
                         },
                       })}
+                      onInput={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        if (target.value === '') {
+                          setValue('book.numberOfPages', undefined);
+                        }
+                      }}
                     />
                     {errors.book?.numberOfPages && (
                       <p className="text-sm text-destructive">

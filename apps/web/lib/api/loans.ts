@@ -4,6 +4,8 @@ import {
   GetLoansParams,
   GetLoansResponse,
   MemberLoanStats,
+  LoanConfiguration,
+  UpdateLoanConfigurationData,
 } from '@library/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -92,7 +94,8 @@ export const loansApi = {
   async returnLoan(
     loanId: string,
     returnDate: string | undefined,
-    token: string
+    token: string,
+    condition?: string
   ): Promise<LoanWithDetails> {
     const response = await fetch(`${API_URL}/loans/${loanId}/return`, {
       method: 'POST',
@@ -100,7 +103,7 @@ export const loansApi = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ returnDate }),
+      body: JSON.stringify({ returnDate, condition }),
     });
     return handleResponse<LoanWithDetails>(response);
   },
@@ -137,5 +140,29 @@ export const loansApi = {
       },
     });
     return handleResponse<{ updated: number; loanIds: string[] }>(response);
+  },
+
+  async getConfiguration(token: string): Promise<LoanConfiguration> {
+    const response = await fetch(`${API_URL}/loan-configuration`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handleResponse<LoanConfiguration>(response);
+  },
+
+  async updateConfiguration(
+    data: UpdateLoanConfigurationData,
+    token: string
+  ): Promise<LoanConfiguration> {
+    const response = await fetch(`${API_URL}/loan-configuration`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<LoanConfiguration>(response);
   },
 };

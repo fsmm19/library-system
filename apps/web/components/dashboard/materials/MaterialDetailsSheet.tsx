@@ -16,9 +16,11 @@ import {
   MapPin,
   Tag,
   Users,
+  Package,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getLanguageLabel } from '@/lib/utils/catalog-utils';
+import { MaterialCopy } from '@library/types';
 
 export type MaterialStatus = 'available' | 'loaned' | 'repair' | 'reserved';
 
@@ -52,6 +54,9 @@ export interface MaterialWithStatus {
     materialId: string;
     publisherId?: string | null;
   } | null;
+  copies?: MaterialCopy[];
+  totalCopies?: number;
+  availableCopies?: number;
 }
 
 interface MaterialDetailsSheetProps {
@@ -85,6 +90,25 @@ const typeLabels: Record<string, string> = {
   OTHER: 'Otro',
 };
 
+const copyStatusLabels: Record<string, string> = {
+  AVAILABLE: 'Disponible',
+  BORROWED: 'Prestado',
+  RESERVED: 'Reservado',
+  UNDER_REPAIR: 'En reparación',
+  REMOVED: 'Retirado',
+};
+
+const copyStatusVariants: Record<
+  string,
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
+  AVAILABLE: 'default',
+  BORROWED: 'secondary',
+  RESERVED: 'secondary',
+  UNDER_REPAIR: 'outline',
+  REMOVED: 'destructive',
+};
+
 export default function MaterialDetailsSheet({
   open,
   onOpenChange,
@@ -94,13 +118,24 @@ export default function MaterialDetailsSheet({
   if (!material) return null;
 
   const authorsText = material.authors
-    ?.map(
-      (author) =>
-        `${author.firstName}${
-          author.middleName ? ' ' + author.middleName : ''
-        } ${author.lastName}`
-    )
-    .join(', ');
+    ? [...material.authors]
+        .sort((a, b) => {
+          const fullNameA = `${a.firstName} ${a.middleName || ''} ${a.lastName}`
+            .trim()
+            .toLowerCase();
+          const fullNameB = `${b.firstName} ${b.middleName || ''} ${b.lastName}`
+            .trim()
+            .toLowerCase();
+          return fullNameA.localeCompare(fullNameB, 'es');
+        })
+        .map(
+          (author) =>
+            `${author.firstName}${
+              author.middleName ? ' ' + author.middleName : ''
+            } ${author.lastName}`
+        )
+        .join(', ')
+    : '';
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -181,62 +216,114 @@ export default function MaterialDetailsSheet({
           </div>
 
           {/* Book Specific Information */}
-          {material.book && (
-            <>
-              <Separator />
-              <div className="space-y-4">
-                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                  Información del libro
-                </h4>
+          {material.book &&
+            (material.book.isbn13 ||
+              material.book.edition ||
+              material.book.numberOfPages) && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                    Información del libro
+                  </h4>
 
-                <div className="rounded-lg border p-4 space-y-3">
-                  {material.book.isbn13 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">
-                        ISBN-13
-                      </span>
-                      <span className="font-medium text-sm">
-                        {material.book.isbn13}
-                      </span>
-                    </div>
-                  )}
-                  {material.book.edition && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">
-                        Edición
-                      </span>
-                      <span className="font-medium text-sm">
-                        {material.book.edition}
-                      </span>
-                    </div>
-                  )}
-                  {material.book.numberOfPages && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">
-                        Páginas
-                      </span>
-                      <span className="font-medium text-sm">
-                        {material.book.numberOfPages}
-                      </span>
-                    </div>
-                  )}
+                  <div className="rounded-lg border p-4 space-y-3">
+                    {material.book.isbn13 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">
+                          ISBN-13
+                        </span>
+                        <span className="font-medium text-sm">
+                          {material.book.isbn13}
+                        </span>
+                      </div>
+                    )}
+                    {material.book.edition && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">
+                          Edición
+                        </span>
+                        <span className="font-medium text-sm">
+                          {material.book.edition}
+                        </span>
+                      </div>
+                    )}
+                    {material.book.numberOfPages && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">
+                          Páginas
+                        </span>
+                        <span className="font-medium text-sm">
+                          {material.book.numberOfPages}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
 
           <Separator />
 
-          {/* Loan History */}
+          {/* Copies List */}
           <div className="space-y-4">
-            <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-              Historial de préstamos
-            </h4>
-            <div className="rounded-lg border p-4">
-              <p className="text-sm text-muted-foreground text-center">
-                Historial completo disponible próximamente
-              </p>
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                Copias del material
+              </h4>
+              {material.totalCopies !== undefined && (
+                <Badge variant="outline">
+                  {material.totalCopies}{' '}
+                  {material.totalCopies === 1 ? 'copia' : 'copias'}
+                </Badge>
+              )}
             </div>
+            {material.copies && material.copies.length > 0 ? (
+              <div className="rounded-lg border p-4 max-h-[400px] overflow-y-auto space-y-2">
+                {material.copies.map((copy) => (
+                  <div
+                    key={copy.id}
+                    className="rounded-lg border p-3 space-y-2 hover:bg-accent/50 transition-colors bg-background"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-mono text-sm font-medium">
+                          {copy.catalogCode}
+                        </span>
+                      </div>
+                      <Badge
+                        variant={copyStatusVariants[copy.status] || 'outline'}
+                      >
+                        {copyStatusLabels[copy.status] || copy.status}
+                      </Badge>
+                    </div>
+                    {(copy.location || copy.barcode) && (
+                      <div className="pl-6 space-y-1 text-sm text-muted-foreground">
+                        {copy.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-3 w-3" />
+                            <span>{copy.location}</span>
+                          </div>
+                        )}
+                        {copy.barcode && (
+                          <div className="flex items-center gap-2">
+                            <Tag className="h-3 w-3" />
+                            <span className="font-mono">{copy.barcode}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border p-4">
+                <p className="text-sm text-muted-foreground text-center">
+                  No hay copias físicas registradas para este material
+                </p>
+              </div>
+            )}
           </div>
 
           <Separator />

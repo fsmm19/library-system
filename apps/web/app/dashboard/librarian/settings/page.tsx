@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -8,443 +8,273 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { materialsApi } from '@/lib/api/materials';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
-import type { Category, Country, Publisher } from '@library/types';
 
-type MasterDataType = 'category' | 'country' | 'publisher';
-
-interface DialogState {
-  open: boolean;
-  mode: 'create' | 'edit';
-  type: MasterDataType;
-  item: { id: string; name: string } | null;
-}
-
-export default function SettingsPage() {
-  const { token } = useAuth();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [publishers, setPublishers] = useState<Publisher[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogState, setDialogState] = useState<DialogState>({
-    open: false,
-    mode: 'create',
-    type: 'category',
-    item: null,
+export default function LibrarianSettingsPage() {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [preferences, setPreferences] = useState({
+    theme: 'system',
+    language: 'es',
+    dateFormat: 'dd/MM/yyyy',
+    timezone: 'America/Santiago',
   });
-  const [formData, setFormData] = useState({ name: '' });
-  const [submitting, setSubmitting] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{
-    type: MasterDataType;
-    item: { id: string; name: string };
-  } | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    loadAllData();
-  }, [token]);
+  const [notifications, setNotifications] = useState({
+    emailNotifications: true,
+    overdueLoanAlerts: true,
+    newUserRegistrations: true,
+    systemAlerts: true,
+    dailyReports: false,
+  });
 
-  const loadAllData = async () => {
-    if (!token) return;
+  const handleSavePreferences = () => {
+    setIsUpdating(true);
 
-    setLoading(true);
-    try {
-      const [categoriesData, countriesData, publishersData] = await Promise.all(
-        [
-          materialsApi.getAllCategories(token),
-          materialsApi.getAllCountries(token),
-          materialsApi.getAllPublishers(token),
-        ]
-      );
-
-      setCategories(categoriesData);
-      setCountries(countriesData);
-      setPublishers(publishersData);
-    } catch (error) {
-      console.error('Error loading master data:', error);
-      toast.error('Error al cargar los datos');
-    } finally {
-      setLoading(false);
-    }
+    // Simulate API call
+    setTimeout(() => {
+      setIsUpdating(false);
+      toast.success('Preferencias guardadas correctamente');
+    }, 1000);
   };
 
-  const handleOpenDialog = (
-    mode: 'create' | 'edit',
-    type: MasterDataType,
-    item: { id: string; name: string } | null = null
-  ) => {
-    setDialogState({ open: true, mode, type, item });
-    setFormData({ name: item?.name || '' });
+  const handleSaveNotifications = () => {
+    setIsUpdating(true);
+
+    // Simulate API call
+    setTimeout(() => {
+      setIsUpdating(false);
+      toast.success('Configuración de notificaciones guardada');
+    }, 1000);
   };
-
-  const handleCloseDialog = () => {
-    setDialogState({
-      open: false,
-      mode: 'create',
-      type: 'category',
-      item: null,
-    });
-    setFormData({ name: '' });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token || !formData.name.trim()) return;
-
-    // Check if there are no changes in edit mode
-    if (dialogState.mode === 'edit' && dialogState.item) {
-      if (formData.name.trim() === dialogState.item.name.trim()) {
-        toast.info('No hay cambios para guardar');
-        handleCloseDialog();
-        return;
-      }
-    }
-
-    setSubmitting(true);
-    try {
-      if (dialogState.mode === 'create') {
-        // Create
-        if (dialogState.type === 'category') {
-          const newItem = await materialsApi.createCategory(formData, token);
-          setCategories([...categories, newItem]);
-          toast.success('Categoría creada correctamente');
-        } else if (dialogState.type === 'country') {
-          const newItem = await materialsApi.createCountry(formData, token);
-          setCountries([...countries, newItem]);
-          toast.success('País creado correctamente');
-        } else {
-          const newItem = await materialsApi.createPublisher(formData, token);
-          setPublishers([...publishers, newItem]);
-          toast.success('Editorial creada correctamente');
-        }
-      } else {
-        // Edit
-        if (!dialogState.item) return;
-
-        if (dialogState.type === 'category') {
-          const updated = await materialsApi.updateCategory(
-            dialogState.item.id,
-            formData,
-            token
-          );
-          setCategories(
-            categories.map((c) => (c.id === updated.id ? updated : c))
-          );
-          toast.success('Categoría actualizada correctamente');
-        } else if (dialogState.type === 'country') {
-          const updated = await materialsApi.updateCountry(
-            dialogState.item.id,
-            formData,
-            token
-          );
-          setCountries(
-            countries.map((c) => (c.id === updated.id ? updated : c))
-          );
-          toast.success('País actualizado correctamente');
-        } else {
-          const updated = await materialsApi.updatePublisher(
-            dialogState.item.id,
-            formData,
-            token
-          );
-          setPublishers(
-            publishers.map((p) => (p.id === updated.id ? updated : p))
-          );
-          toast.success('Editorial actualizada correctamente');
-        }
-      }
-
-      handleCloseDialog();
-    } catch (error: any) {
-      toast.error(error?.message || 'Error al guardar');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleOpenDeleteDialog = (
-    type: MasterDataType,
-    item: { id: string; name: string }
-  ) => {
-    setItemToDelete({ type, item });
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (!token || !itemToDelete) return;
-
-    setDeleting(true);
-    try {
-      if (itemToDelete.type === 'category') {
-        await materialsApi.deleteCategory(itemToDelete.item.id, token);
-        setCategories(categories.filter((c) => c.id !== itemToDelete.item.id));
-        toast.success('Categoría eliminada correctamente');
-      } else if (itemToDelete.type === 'country') {
-        await materialsApi.deleteCountry(itemToDelete.item.id, token);
-        setCountries(countries.filter((c) => c.id !== itemToDelete.item.id));
-        toast.success('País eliminado correctamente');
-      } else {
-        await materialsApi.deletePublisher(itemToDelete.item.id, token);
-        setPublishers(publishers.filter((p) => p.id !== itemToDelete.item.id));
-        toast.success('Editorial eliminada correctamente');
-      }
-
-      setDeleteDialogOpen(false);
-      setItemToDelete(null);
-    } catch (error: any) {
-      toast.error(error?.message || 'Error al eliminar');
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const renderTable = (
-    items: Array<{ id: string; name: string }>,
-    type: MasterDataType
-  ) => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Nombre</TableHead>
-          <TableHead className="text-right">Acciones</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.length === 0 ? (
-          <TableRow>
-            <TableCell
-              colSpan={2}
-              className="text-center py-8 text-muted-foreground"
-            >
-              No hay registros
-            </TableCell>
-          </TableRow>
-        ) : (
-          items.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell className="font-medium">{item.name}</TableCell>
-              <TableCell className="text-right space-x-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleOpenDialog('edit', type, item)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleOpenDeleteDialog(type, item)}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
+        <h1 className="text-3xl font-bold">Configuración de cuenta</h1>
         <p className="text-muted-foreground mt-1">
-          Gestiona los datos maestros del sistema
+          Personaliza tu experiencia en el sistema
         </p>
       </div>
 
-      <Tabs defaultValue="categories" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="categories">Categorías</TabsTrigger>
-          <TabsTrigger value="countries">Países</TabsTrigger>
-          <TabsTrigger value="publishers">Editoriales</TabsTrigger>
-        </TabsList>
+      {/* Preferences */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Preferencias</CardTitle>
+          <CardDescription>
+            Configura la apariencia y comportamiento de la aplicación
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="theme">Tema</Label>
+            <Select
+              value={preferences.theme}
+              onValueChange={(value) =>
+                setPreferences({ ...preferences, theme: value })
+              }
+            >
+              <SelectTrigger id="theme">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="light">Claro</SelectItem>
+                <SelectItem value="dark">Oscuro</SelectItem>
+                <SelectItem value="system">Sistema</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <TabsContent value="categories">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle>Categorías</CardTitle>
-                <CardDescription>
-                  Gestiona las categorías de los materiales
-                </CardDescription>
-              </div>
-              <Button onClick={() => handleOpenDialog('create', 'category')}>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar categoría
-              </Button>
-            </CardHeader>
-            <CardContent>{renderTable(categories, 'category')}</CardContent>
-          </Card>
-        </TabsContent>
+          <div className="space-y-2">
+            <Label htmlFor="language">Idioma</Label>
+            <Select
+              value={preferences.language}
+              onValueChange={(value) =>
+                setPreferences({ ...preferences, language: value })
+              }
+            >
+              <SelectTrigger id="language">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="es">Español</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <TabsContent value="countries">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle>Países</CardTitle>
-                <CardDescription>
-                  Gestiona los países de origen de los autores
-                </CardDescription>
-              </div>
-              <Button onClick={() => handleOpenDialog('create', 'country')}>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar país
-              </Button>
-            </CardHeader>
-            <CardContent>{renderTable(countries, 'country')}</CardContent>
-          </Card>
-        </TabsContent>
+          <div className="space-y-2">
+            <Label htmlFor="dateFormat">Formato de fecha</Label>
+            <Select
+              value={preferences.dateFormat}
+              onValueChange={(value) =>
+                setPreferences({ ...preferences, dateFormat: value })
+              }
+            >
+              <SelectTrigger id="dateFormat">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dd/MM/yyyy">DD/MM/AAAA</SelectItem>
+                <SelectItem value="MM/dd/yyyy">MM/DD/AAAA</SelectItem>
+                <SelectItem value="yyyy-MM-dd">AAAA-MM-DD</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <TabsContent value="publishers">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle>Editoriales</CardTitle>
-                <CardDescription>
-                  Gestiona las editoriales de los libros
-                </CardDescription>
-              </div>
-              <Button onClick={() => handleOpenDialog('create', 'publisher')}>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar editorial
-              </Button>
-            </CardHeader>
-            <CardContent>{renderTable(publishers, 'publisher')}</CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <div className="space-y-2">
+            <Label htmlFor="timezone">Zona horaria</Label>
+            <Select
+              value={preferences.timezone}
+              onValueChange={(value) =>
+                setPreferences({ ...preferences, timezone: value })
+              }
+            >
+              <SelectTrigger id="timezone">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="America/Santiago">
+                  Santiago (GMT-3)
+                </SelectItem>
+                <SelectItem value="America/Buenos_Aires">
+                  Buenos Aires (GMT-3)
+                </SelectItem>
+                <SelectItem value="America/Sao_Paulo">
+                  Sao Paulo (GMT-3)
+                </SelectItem>
+                <SelectItem value="America/Mexico_City">
+                  Ciudad de Mexico (GMT-6)
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={dialogState.open} onOpenChange={handleCloseDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {dialogState.mode === 'create' ? 'Agregar' : 'Editar'}{' '}
-              {dialogState.type === 'category'
-                ? 'categoría'
-                : dialogState.type === 'country'
-                ? 'país'
-                : 'editorial'}
-            </DialogTitle>
-            <DialogDescription>
-              {dialogState.mode === 'create'
-                ? 'Ingresa el nombre para crear un nuevo registro'
-                : 'Modifica el nombre del registro'}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ name: e.target.value })}
-                  placeholder="Ingresa el nombre"
-                  disabled={submitting}
-                  required
-                />
-              </div>
+          <Button onClick={handleSavePreferences} disabled={isUpdating}>
+            {isUpdating ? 'Guardando...' : 'Guardar preferencias'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Notificaciones</CardTitle>
+          <CardDescription>
+            Configura que notificaciones deseas recibir
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="emailNotifications">
+                Notificaciones por correo
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Recibe notificaciones importantes por correo electrónico
+              </p>
             </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCloseDialog}
-                disabled={submitting}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Guardando...
-                  </>
-                ) : dialogState.mode === 'create' ? (
-                  'Crear'
-                ) : (
-                  'Guardar cambios'
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            <Switch
+              id="emailNotifications"
+              checked={notifications.emailNotifications}
+              onCheckedChange={(checked) =>
+                setNotifications({
+                  ...notifications,
+                  emailNotifications: checked,
+                })
+              }
+            />
+          </div>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar eliminación</DialogTitle>
-            <DialogDescription>
-              ¿Estás seguro de que deseas eliminar "{itemToDelete?.item.name}"?
-              Esta acción no se puede deshacer.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDeleteDialogOpen(false);
-                setItemToDelete(null);
-              }}
-              disabled={deleting}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Eliminando...
-                </>
-              ) : (
-                'Eliminar'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="overdueLoanAlerts">
+                Alertas de préstamos vencidos
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Recibe alertas cuando haya préstamos vencidos
+              </p>
+            </div>
+            <Switch
+              id="overdueLoanAlerts"
+              checked={notifications.overdueLoanAlerts}
+              onCheckedChange={(checked) =>
+                setNotifications({
+                  ...notifications,
+                  overdueLoanAlerts: checked,
+                })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="newUserRegistrations">
+                Nuevos usuarios registrados
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Recibe notificaciones cuando se registre un nuevo usuario
+              </p>
+            </div>
+            <Switch
+              id="newUserRegistrations"
+              checked={notifications.newUserRegistrations}
+              onCheckedChange={(checked) =>
+                setNotifications({
+                  ...notifications,
+                  newUserRegistrations: checked,
+                })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="systemAlerts">Alertas del sistema</Label>
+              <p className="text-sm text-muted-foreground">
+                Recibe notificaciones sobre actualizaciones y mantenimiento
+              </p>
+            </div>
+            <Switch
+              id="systemAlerts"
+              checked={notifications.systemAlerts}
+              onCheckedChange={(checked) =>
+                setNotifications({ ...notifications, systemAlerts: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="dailyReports">Reportes diarios</Label>
+              <p className="text-sm text-muted-foreground">
+                Recibe un reporte diario con las estadísticas del sistema
+              </p>
+            </div>
+            <Switch
+              id="dailyReports"
+              checked={notifications.dailyReports}
+              onCheckedChange={(checked) =>
+                setNotifications({ ...notifications, dailyReports: checked })
+              }
+            />
+          </div>
+
+          <Button onClick={handleSaveNotifications} disabled={isUpdating}>
+            {isUpdating ? 'Guardando...' : 'Guardar configuración'}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

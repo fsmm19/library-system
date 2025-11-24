@@ -697,16 +697,16 @@ export default function MaterialDetailPage() {
               </CardHeader>
               <CardContent>
                 <dl className="space-y-4">
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Fecha de adquisición
-                    </dt>
-                    <dd className="mt-1">
-                      {material.copies && material.copies.length > 0
-                        ? formatDate(material.copies[0].acquisitionDate)
-                        : 'No especificada'}
-                    </dd>
-                  </div>
+                  {material.copies && material.copies.length > 0 && (
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">
+                        Fecha de adquisición
+                      </dt>
+                      <dd className="mt-1">
+                        {formatDate(material.copies[0].acquisitionDate)}
+                      </dd>
+                    </div>
+                  )}
                   <div>
                     <dt className="text-sm font-medium text-muted-foreground">
                       Última actualización
