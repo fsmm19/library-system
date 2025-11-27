@@ -179,7 +179,7 @@ export default function ReportsPage() {
         ).length;
         const paidFines = allFines.filter((f) => f.status === 'PAID').length;
         const cancelledFines = allFines.filter(
-          (f) => f.status === 'CANCELLED'
+          (f) => String(f.status) === 'CANCELLED'
         ).length;
         const waivedFines = allFines.filter(
           (f) => f.status === 'WAIVED'
