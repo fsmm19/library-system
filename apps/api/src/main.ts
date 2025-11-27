@@ -7,7 +7,12 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: ['http://localhost:3001', 'http://localhost:3000'],
+    origin: [
+      'http://localhost:3001',
+      'http://localhost:3000',
+      'https://victorious-ground-0ed21c410.3.azurestaticapps.net',
+      'https://app-library-api-1764276273.azurewebsites.net',
+    ],
     credentials: true,
   });
 
