@@ -6,4 +6,4 @@ export * from './material';
 export * from './material-copy';
 export * from './loan';
 export * from './reservation';
-export * from './notification';
+export { type Notification, type CreateNotificationDto } from './notification';

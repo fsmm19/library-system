@@ -4,6 +4,7 @@ import { Bell, LogOut, User, Settings, Menu, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
+import { Notification } from '@library/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +18,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { notificationsApi } from '@/lib/api/notifications';
-import { Notification } from '@library/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface DashboardHeaderProps {

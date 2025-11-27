@@ -1,12 +1,4 @@
-export enum NotificationType {
-  LOAN_DUE_SOON = 'LOAN_DUE_SOON',
-  LOAN_OVERDUE = 'LOAN_OVERDUE',
-  RESERVATION_READY = 'RESERVATION_READY',
-  RESERVATION_EXPIRED = 'RESERVATION_EXPIRED',
-  FINE_ISSUED = 'FINE_ISSUED',
-  ACCOUNT_SUSPENDED = 'ACCOUNT_SUSPENDED',
-  GENERAL = 'GENERAL',
-}
+import { NotificationType } from './enums';
 
 export interface Notification {
   id: string;

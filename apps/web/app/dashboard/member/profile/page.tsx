@@ -43,6 +43,7 @@ export default function ProfilePage() {
 
     try {
       const updatedUser = await usersApi.updateProfile(
+        user.id,
         {
           firstName: data.firstName,
           middleName: data.middleName || null,

@@ -150,7 +150,11 @@ export const usersApi = {
     return handleResponse<void>(response);
   },
 
-  async updateProfile(data: UpdateUserData, token: string): Promise<User> {
+  async updateProfile(
+    id: string,
+    data: UpdateUserData,
+    token: string
+  ): Promise<User> {
     const response = await fetch(`${API_URL}/users/me`, {
       method: 'PATCH',
       headers: {
