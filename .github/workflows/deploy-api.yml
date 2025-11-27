@@ -1,0 +1,76 @@
+name: Deploy API to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/api/**'
+      - 'packages/types/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.x'
+  APP_NAME: 'app-library-api-1764276273'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build API
+        run: pnpm --filter api build
+
+      - name: Generate Prisma Client
+        run: |
+          cd apps/api
+          pnpm prisma generate
+
+      - name: Create deployment package
+        run: |
+          cd apps/api
+          mkdir -p deploy
+          cp -r dist deploy/
+          cp -r prisma deploy/
+          cp -r generated deploy/
+          cp package.json deploy/
+          cp pnpm-lock.yaml deploy/
+          cp startup.sh deploy/
+          cd deploy
+          zip -r ../api-deployment.zip .
+
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.APP_NAME }}
+          publish-profile: ${{ secrets.AZURE_APP_SERVICE_PUBLISH_PROFILE }}
+          package: apps/api/api-deployment.zip
+
+      - name: Run Prisma Migrations
+        run: |
+          cd apps/api
+          DATABASE_URL="${{ secrets.DATABASE_URL }}" npx prisma migrate deploy
+
+      - name: Restart App Service
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az webapp restart --name ${{ env.APP_NAME }} --resource-group rg-library-system

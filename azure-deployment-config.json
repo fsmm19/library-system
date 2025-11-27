@@ -1,0 +1,87 @@
+{
+  "deployment": {
+    "subscriptionId": "d45bdeeb-3bd8-486b-8d97-77ec40e59d45",
+    "subscriptionName": "Azure for Students",
+    "region": "eastus2",
+    "resourcePrefix": "library-system",
+    "tags": {
+      "project": "library-system",
+      "environment": "production",
+      "managedBy": "azure-mcp",
+      "costCenter": "student-credits"
+    }
+  },
+  "resources": {
+    "resourceGroup": {
+      "name": "rg-library-system",
+      "region": "eastus2"
+    },
+    "postgresql": {
+      "serverName": "library-db-${UNIQUE_SUFFIX}",
+      "adminUsername": "libraryadmin",
+      "databaseName": "library",
+      "sku": "Standard_B1ms",
+      "tier": "Burstable",
+      "storageSizeGB": 32,
+      "version": "16",
+      "enableSSL": true,
+      "firewallRules": {
+        "allowAzureServices": true,
+        "description": "Allow access from Azure services including App Service"
+      }
+    },
+    "appServicePlan": {
+      "name": "asp-library-system",
+      "sku": "F1",
+      "tier": "Free",
+      "os": "Linux"
+    },
+    "apiAppService": {
+      "name": "app-library-api-${UNIQUE_SUFFIX}",
+      "runtime": "NODE:20-lts",
+      "httpsOnly": true,
+      "alwaysOn": false,
+      "environmentVariables": [
+        "DATABASE_URL",
+        "NODE_ENV",
+        "PORT",
+        "JWT_SECRET",
+        "JWT_EXPIRES_IN"
+      ]
+    },
+    "staticWebApp": {
+      "name": "stapp-library-web",
+      "sku": "Free",
+      "repositoryUrl": "https://github.com/fsmm19/library-system",
+      "branch": "main",
+      "appLocation": "apps/web",
+      "apiLocation": "",
+      "outputLocation": ".next",
+      "buildCommand": "pnpm build",
+      "environmentVariables": [
+        "NEXT_PUBLIC_API_URL"
+      ]
+    }
+  },
+  "estimatedCosts": {
+    "currency": "USD",
+    "monthly": {
+      "appServicePlan": 0,
+      "postgresql": 0,
+      "staticWebApp": 0,
+      "total": 0,
+      "note": "Using F1 Free tier for App Service and Free tier for Static Web Apps. PostgreSQL in Free tier has limitations - may need upgrade to B1ms (~$12/month) for production use."
+    },
+    "studentCredits": {
+      "available": 100,
+      "sufficient": true
+    }
+  },
+  "notes": [
+    "Unique suffix will be generated using timestamp to ensure globally unique resource names",
+    "F1 Free tier has limitations: 60 min/day CPU time, 1GB RAM, 1GB storage",
+    "Consider upgrading to B1 Basic tier for production workloads",
+    "Static Web Apps Free tier includes 100GB bandwidth/month",
+    "All resources will be tagged for cost tracking"
+  ]
+}
